@@ -9,7 +9,7 @@ import com.musyfy.nativeapp.feature.auth.presentation.ui.LoginScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.RegisterScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.ForgotPasswordScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.SplashScreen
-import com.musyfy.nativeapp.feature.home.presentation.ui.HomeScreen
+import com.musyfy.nativeapp.feature.home.presentation.ui.MainScreen
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
@@ -73,7 +73,7 @@ fun AppNavigation(
             )
         }
         composable(route = Screen.Home.route) {
-            HomeScreen()
+            MainScreen()
         }
     }
 }
