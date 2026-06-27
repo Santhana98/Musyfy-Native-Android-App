@@ -82,6 +82,8 @@ fun HomeScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 20.dp)
         ) {
+            Spacer(modifier = Modifier.height(56.dp)) // Offset to prevent top bar overlap when unscrolled
+            
             // Welcome Text header section
             Column(
                 modifier = Modifier
@@ -107,7 +109,7 @@ fun HomeScreen(
                 ) {
                     Text(text = "🎵", fontSize = 18.sp)
                     Text(
-                        text = "Vibe Session",
+                        text = "Unnai Kaanadhu Naan Lo...",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -227,11 +229,11 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(100.dp)) // Padding for MiniPlayer dock
         }
 
-        // 4. Fixed + (Add to Library) Button at top-right aligned with "Welcome back" text
+        // 4. Fixed + (Add to Library) Button at top-right aligned with "Welcome back" text (accounting for Top App Bar)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 22.dp, end = 20.dp)
+                .padding(top = 80.dp, end = 20.dp) // Repositioned to 80dp top padding to align with "Welcome back"
                 .size(42.dp)
                 .background(Color(0xFFE53935), CircleShape)
                 .clickable { },

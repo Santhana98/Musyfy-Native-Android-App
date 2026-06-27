@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -35,61 +34,54 @@ import com.musyfy.nativeapp.R
 fun MusyfyTopBar(
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFA070708)) // Dark blurred top app bar background
+            .height(56.dp)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Left: App Logo + App Name
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "Musy-Fi Logo",
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            Text(
+                text = "Musy-Fi",
+                color = Color(0xFFE53935),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Serif
+            )
+        }
+
+        // Right: User Profile Pill
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .background(Color(0x1AFFFFFF), RoundedCornerShape(20.dp))
+                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(20.dp))
+                .clickable { }
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Left: App Logo + App Name
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Musy-Fi Logo",
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Text(
-                    text = "Musy-Fi",
-                    color = Color(0xFFE53935),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Serif
-                )
-            }
-
-            // Right: User Profile Pill
-            Row(
-                modifier = Modifier
-                    .background(Color(0x1AFFFFFF), RoundedCornerShape(20.dp))
-                    .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(20.dp))
-                    .clickable { }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(text = "👤", fontSize = 12.sp)
-                Text(
-                    text = "User ⌃",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(text = "👤", fontSize = 12.sp)
+            Text(
+                text = "Test ⌃",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
-        HorizontalDivider(color = Color(0x1AFFFFFF), thickness = 1.dp) // Subtle border bottom
     }
 }
 
