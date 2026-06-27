@@ -1,6 +1,8 @@
 package com.musyfy.nativeapp.core.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,16 +12,24 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.musyfy.nativeapp.R
 
 @Composable
 fun MusyfyTopBar(
@@ -28,22 +38,56 @@ fun MusyfyTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xE6070708)) // rgba(7, 7, 8, 0.9)
+            .background(Color(0xFA070708)) // Dark blurred top app bar background
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(55.dp)
+                .height(56.dp)
                 .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Musy-Fi",
-                color = Color(0xFFE53935),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.Serif
-            )
+            // Left: App Logo + App Name
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Musy-Fi Logo",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    text = "Musy-Fi",
+                    color = Color(0xFFE53935),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Serif
+                )
+            }
+
+            // Right: User Profile Pill
+            Row(
+                modifier = Modifier
+                    .background(Color(0x1AFFFFFF), RoundedCornerShape(20.dp))
+                    .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(20.dp))
+                    .clickable { }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = "👤", fontSize = 12.sp)
+                Text(
+                    text = "User ⌃",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
         HorizontalDivider(color = Color(0x1AFFFFFF), thickness = 1.dp) // Subtle border bottom
     }
