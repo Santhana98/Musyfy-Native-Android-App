@@ -1,4 +1,4 @@
-package com.musyfy.nativeapp.feature.home.presentation.ui
+package com.musyfy.nativeapp.feature.download.presentation.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -6,10 +6,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun HomeScreen(
+fun UploadScreen(
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -17,8 +18,8 @@ fun HomeScreen(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Home Screen",
-            color = androidx.compose.ui.graphics.Color.White,
+            text = "Upload Screen",
+            color = Color.White,
             fontSize = 18.sp
         )
     }
