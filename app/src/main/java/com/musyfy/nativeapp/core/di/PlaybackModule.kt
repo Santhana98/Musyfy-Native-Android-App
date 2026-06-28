@@ -10,6 +10,7 @@ import androidx.media3.session.MediaSession
 import com.musyfy.nativeapp.MainActivity
 import com.musyfy.nativeapp.core.playback.PlayerManager
 import com.musyfy.nativeapp.core.playback.PlayerManagerImpl
+import com.musyfy.nativeapp.domain.repository.SongRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,31 +43,15 @@ object PlaybackModule {
             .build()
     }
 
-    @Provides
-    @Singleton
-    fun provideMediaSession(
-        @ApplicationContext context: Context,
-        player: ExoPlayer
-    ): MediaSession {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        return MediaSession.Builder(context, player)
-            .setSessionActivity(pendingIntent)
-            .build()
-    }
+
 
     @Provides
     @Singleton
     fun providePlayerManager(
-        player: ExoPlayer
+        player: ExoPlayer,
+        songRepository: SongRepository,
+        @ApplicationContext context: Context
     ): PlayerManager {
-        return PlayerManagerImpl(player)
+        return PlayerManagerImpl(player, songRepository, context)
     }
 }

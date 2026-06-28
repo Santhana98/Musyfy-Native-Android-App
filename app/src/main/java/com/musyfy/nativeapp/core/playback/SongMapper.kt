@@ -19,4 +19,15 @@ object SongMapper {
             )
             .build()
     }
+
+    fun toSong(mediaItem: MediaItem): Song {
+        val metadata = mediaItem.mediaMetadata
+        return Song(
+            id = mediaItem.mediaId,
+            title = metadata.title?.toString() ?: "",
+            artist = metadata.artist?.toString() ?: "",
+            url = mediaItem.localConfiguration?.uri?.toString() ?: "",
+            imageUrl = metadata.artworkUri?.toString()
+        )
+    }
 }

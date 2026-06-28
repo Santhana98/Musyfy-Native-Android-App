@@ -1,10 +1,14 @@
 package com.musyfy.nativeapp.core.playback
 
+import android.content.Context
+import android.content.Intent
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.musyfy.nativeapp.domain.model.Song
+import com.musyfy.nativeapp.domain.repository.SongRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,7 +25,9 @@ import javax.inject.Singleton
 
 @Singleton
 class PlayerManagerImpl @Inject constructor(
-    private val exoPlayer: ExoPlayer
+    private val exoPlayer: ExoPlayer,
+    private val songRepository: SongRepository,
+    @param:ApplicationContext private val context: Context
 ) : PlayerManager {
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -29,6 +36,8 @@ class PlayerManagerImpl @Inject constructor(
     override val playbackUiState: StateFlow<PlaybackUiState> = _playbackUiState.asStateFlow()
 
     private var progressJob: Job? = null
+    
+    private val sharedPrefs = context.getSharedPreferences("musyfy_playback_prefs", Context.MODE_PRIVATE)
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -57,6 +66,7 @@ class PlayerManagerImpl @Inject constructor(
             }
             if (isPlaying) {
                 startProgressUpdate()
+                startService()
             } else {
                 stopProgressUpdate()
             }
@@ -82,6 +92,15 @@ class PlayerManagerImpl @Inject constructor(
                         durationMs = 0L
                     )
                 }
+            } else {
+                val song = SongMapper.toSong(mediaItem)
+                _playbackUiState.update {
+                    it.copy(
+                        currentSong = song,
+                        currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                        durationMs = exoPlayer.duration.coerceAtLeast(0L)
+                    )
+                }
             }
         }
     }
@@ -89,6 +108,34 @@ class PlayerManagerImpl @Inject constructor(
     init {
         coroutineScope.launch {
             exoPlayer.addListener(listener)
+            
+            // Restore last played song and progress position
+            val lastSongId = sharedPrefs.getString("last_song_id", null)
+            val lastPosition = sharedPrefs.getLong("last_position", 0L)
+            if (lastSongId != null) {
+                try {
+                    val allSongs = songRepository.getSongs().first()
+                    val song = allSongs.find { it.id == lastSongId }
+                    if (song != null) {
+                        val mediaItems = allSongs.map { SongMapper.toMediaItem(it) }
+                        val index = allSongs.indexOf(song).coerceAtLeast(0)
+                        
+                        _playbackUiState.update {
+                            it.copy(
+                                currentSong = song,
+                                currentPositionMs = lastPosition,
+                                state = PlayerState.PAUSED,
+                                isPlaying = false
+                            )
+                        }
+                        
+                        exoPlayer.setMediaItems(mediaItems, index, lastPosition)
+                        exoPlayer.prepare()
+                    }
+                } catch (e: Exception) {
+                    // Safe fallback
+                }
+            }
         }
     }
 
@@ -102,16 +149,23 @@ class PlayerManagerImpl @Inject constructor(
                     errorMessage = null
                 )
             }
-            val mediaItem = SongMapper.toMediaItem(song)
-            exoPlayer.setMediaItem(mediaItem)
+            
+            // Load all songs to enable next/previous media buttons automatically
+            val allSongs = songRepository.getSongs().first()
+            val mediaItems = allSongs.map { SongMapper.toMediaItem(it) }
+            val index = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+            
+            exoPlayer.setMediaItems(mediaItems, index, 0L)
             exoPlayer.prepare()
             exoPlayer.play()
+            startService()
         }
     }
 
     override fun play() {
         coroutineScope.launch {
             exoPlayer.play()
+            startService()
         }
     }
 
@@ -127,6 +181,9 @@ class PlayerManagerImpl @Inject constructor(
             _playbackUiState.update {
                 it.copy(currentPositionMs = positionMs)
             }
+            _playbackUiState.value.currentSong?.let { song ->
+                savePlaybackState(song.id, positionMs)
+            }
         }
     }
 
@@ -135,6 +192,15 @@ class PlayerManagerImpl @Inject constructor(
             stopProgressUpdate()
             exoPlayer.removeListener(listener)
             exoPlayer.release()
+        }
+    }
+
+    private fun startService() {
+        try {
+            val intent = Intent(context, PlayerService::class.java)
+            context.startService(intent)
+        } catch (e: Exception) {
+            // Safe fallback
         }
     }
 
@@ -150,6 +216,11 @@ class PlayerManagerImpl @Inject constructor(
                         durationMs = duration
                     )
                 }
+                
+                // Caches the progress details periodically
+                _playbackUiState.value.currentSong?.let { song ->
+                    savePlaybackState(song.id, currentPos)
+                }
                 delay(500)
             }
         }
@@ -158,6 +229,13 @@ class PlayerManagerImpl @Inject constructor(
     private fun stopProgressUpdate() {
         progressJob?.cancel()
         progressJob = null
+    }
+
+    private fun savePlaybackState(songId: String, position: Long) {
+        sharedPrefs.edit()
+            .putString("last_song_id", songId)
+            .putLong("last_position", position)
+            .apply()
     }
 
     private fun mapExoPlayerState(playbackState: Int, isPlaying: Boolean): PlayerState {
