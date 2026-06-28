@@ -21,15 +21,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,16 +42,20 @@ import com.musyfy.nativeapp.R
 
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PlayerViewModel = hiltViewModel()
 ) {
     var activeTab by remember { mutableStateOf("all") }
     val scrollState = rememberScrollState()
 
+    val songs by viewModel.songs.collectAsState()
+    val uiState by viewModel.playbackUiState.collectAsState()
+
     // Filter songs based on active tab
     val filteredSongs = when (activeTab) {
-        "liked" -> mockSongsList.filter { it.liked }
-        "recent" -> mockSongsList.take(2) // Mock recent subset
-        else -> mockSongsList
+        "liked" -> songs.filter { it.liked }
+        "recent" -> songs.take(2) // Mock recent subset
+        else -> songs
     }
 
     Box(
@@ -98,22 +106,45 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.height(14.dp))
                 // Now playing preview pill chip
-                Row(
-                    modifier = Modifier
-                        .background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
-                        .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
-                        .clickable { }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(text = "🎵", fontSize = 18.sp)
-                    Text(
-                        text = "Unnai Kaanadhu Naan Lo...",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                val currentSong = uiState.currentSong
+                if (currentSong != null) {
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
+                            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
+                            .clickable { }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(text = if (uiState.isPlaying) "🔊" else "🎵", fontSize = 18.sp)
+                        Text(
+                            text = "${currentSong.title} - ${currentSong.artist ?: "Unknown"}",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
+                            .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
+                            .clickable { }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(text = "🎵", fontSize = 18.sp)
+                        Text(
+                            text = "Select a song to play",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -180,7 +211,16 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 filteredSongs.forEach { song ->
-                    LegacySongRow(song = song, isActive = song.id == "1")
+                    LegacySongRow(
+                        song = MockSong(
+                            id = song.id,
+                            title = song.title,
+                            artist = song.artist,
+                            liked = song.liked
+                        ),
+                        isActive = uiState.currentSong?.id == song.id,
+                        onClick = { viewModel.playSong(song) }
+                    )
                 }
             }
 

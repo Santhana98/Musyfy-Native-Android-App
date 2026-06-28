@@ -19,21 +19,63 @@ import com.musyfy.nativeapp.feature.download.presentation.ui.UploadScreen
 import com.musyfy.nativeapp.feature.library.presentation.ui.LikedScreen
 import com.musyfy.nativeapp.feature.search.presentation.ui.SearchScreen
 import com.musyfy.nativeapp.feature.settings.presentation.ui.SettingsScreen
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import androidx.compose.foundation.layout.Column
 
 @Composable
 fun MainScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PlayerViewModel = hiltViewModel()
 ) {
     var activeTab by remember { mutableStateOf("home") }
-    var isPlaying by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
             Column {
+                val uiState by viewModel.playbackUiState.collectAsState()
+                val currentSong = uiState.currentSong
+
+                val progressPct = if (uiState.durationMs > 0) {
+                    uiState.currentPositionMs.toFloat() / uiState.durationMs
+                } else {
+                    0f
+                }
+
+                val formatTime: (Long) -> String = { ms ->
+                    val totalSeconds = ms / 1000
+                    val minutes = totalSeconds / 60
+                    val seconds = totalSeconds % 60
+                    "$minutes:${if (seconds < 10) "0" else ""}$seconds"
+                }
+
                 MiniPlayerPlaceholder(
-                    isPlaying = isPlaying,
-                    onPlayPauseClick = { isPlaying = !isPlaying }
+                    songTitle = currentSong?.title ?: "No Song Playing",
+                    artistName = currentSong?.artist.orEmpty(),
+                    isPlaying = uiState.isPlaying,
+                    progressPct = progressPct,
+                    imageUrl = currentSong?.imageUrl,
+                    currentTimeText = formatTime(uiState.currentPositionMs),
+                    durationText = formatTime(uiState.durationMs),
+                    durationMs = uiState.durationMs,
+                    onSeek = { position -> viewModel.seekTo(position) },
+                    onPlayPauseClick = {
+                        if (uiState.isPlaying) {
+                            viewModel.pause()
+                        } else {
+                            if (currentSong == null) {
+                                val songsList = viewModel.songs.value
+                                if (songsList.isNotEmpty()) {
+                                    viewModel.playSong(songsList.first())
+                                }
+                            } else {
+                                viewModel.play()
+                            }
+                        }
+                    },
+                    onPrevClick = { viewModel.skipToPrevious() },
+                    onNextClick = { viewModel.skipToNext() }
                 )
                 MusyfyBottomNavigationBar(
                     activeTab = activeTab,
@@ -56,7 +98,7 @@ fun MainScreen(
                     .padding(bottom = innerPadding.calculateBottomPadding())
             ) {
                 when (activeTab) {
-                    "home" -> HomeScreen()
+                    "home" -> HomeScreen(viewModel = viewModel)
                     "search" -> SearchScreen()
                     "liked" -> LikedScreen()
                     "upload" -> UploadScreen()
