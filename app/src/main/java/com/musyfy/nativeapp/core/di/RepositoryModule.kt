@@ -17,4 +17,10 @@ abstract class RepositoryModule {
     abstract fun bindUserRepository(
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSongRepository(
+        songRepositoryImpl: com.musyfy.nativeapp.data.repository.SongRepositoryImpl
+    ): com.musyfy.nativeapp.domain.repository.SongRepository
 }
