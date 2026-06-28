@@ -51,6 +51,7 @@ fun MiniPlayerPlaceholder(
     durationText: String = "0:00",
     durationMs: Long = 0L,
     onSeek: (Long) -> Unit = {},
+    onExpandClick: () -> Unit = {},
     onPlayPauseClick: () -> Unit = {},
     onPrevClick: () -> Unit = {},
     onNextClick: () -> Unit = {}
@@ -93,6 +94,7 @@ fun MiniPlayerPlaceholder(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onExpandClick() }
                 .padding(horizontal = 16.dp, vertical = 10.dp), // Revert to exact legacy padding
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)

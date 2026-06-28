@@ -79,6 +79,9 @@ dependencies {
     // Coil Image Loader
     implementation(libs.coil.compose)
 
+    // AndroidX Palette for dynamic note colors
+    implementation(libs.androidx.palette)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

@@ -30,6 +30,7 @@ fun MainScreen(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     var activeTab by remember { mutableStateOf("home") }
+    var isPlayerExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -60,6 +61,7 @@ fun MainScreen(
                     durationText = formatTime(uiState.durationMs),
                     durationMs = uiState.durationMs,
                     onSeek = { position -> viewModel.seekTo(position) },
+                    onExpandClick = { isPlayerExpanded = true },
                     onPlayPauseClick = {
                         if (uiState.isPlaying) {
                             viewModel.pause()
@@ -110,6 +112,34 @@ fun MainScreen(
             MusyfyTopBar(
                 modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
             )
+
+            // Full Player Screen Overlay
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isPlayerExpanded,
+                enter = androidx.compose.animation.slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 400,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                    )
+                ) + androidx.compose.animation.fadeIn(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200)
+                ),
+                exit = androidx.compose.animation.slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 400,
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                    )
+                ) + androidx.compose.animation.fadeOut(
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200)
+                )
+            ) {
+                com.musyfy.nativeapp.feature.player.presentation.ui.FullPlayerScreen(
+                    viewModel = viewModel,
+                    onCollapse = { isPlayerExpanded = false }
+                )
+            }
         }
     }
 }
