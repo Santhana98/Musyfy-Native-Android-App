@@ -57,6 +57,38 @@ class PlayerViewModel @Inject constructor(
         playerManager.seekTo(positionMs)
     }
 
+    fun setQueue(songs: List<Song>) {
+        playerManager.setQueue(songs)
+    }
+
+    fun addToQueue(song: Song) {
+        playerManager.addToQueue(song)
+    }
+
+    fun playNext(song: Song) {
+        playerManager.playNext(song)
+    }
+
+    fun reorderQueue(fromIndex: Int, toIndex: Int) {
+        playerManager.reorderQueue(fromIndex, toIndex)
+    }
+
+    fun clearQueue() {
+        playerManager.clearQueue()
+    }
+
+    fun removeFromQueue(songId: String) {
+        playerManager.removeFromQueue(songId)
+    }
+
+    fun setShuffleModeEnabled(enabled: Boolean) {
+        playerManager.setShuffleModeEnabled(enabled)
+    }
+
+    fun setRepeatMode(repeatMode: Int) {
+        playerManager.setRepeatMode(repeatMode)
+    }
+
     fun skipToNext() {
         viewModelScope.launch {
             try {
@@ -110,6 +142,17 @@ class PlayerViewModel @Inject constructor(
 
     fun deleteDownloadedSong(songId: String) {
         songDownloader.deleteDownloadedSong(songId)
+    }
+
+    fun deleteSong(songId: String) {
+        viewModelScope.launch {
+            // Delete from repository
+            songRepository.deleteSong(songId)
+            // Delete downloaded files if they exist
+            songDownloader.deleteDownloadedSong(songId)
+            // Remove from player queue if present
+            playerManager.removeFromQueue(songId)
+        }
     }
 
     // YouTube Import Pipeline

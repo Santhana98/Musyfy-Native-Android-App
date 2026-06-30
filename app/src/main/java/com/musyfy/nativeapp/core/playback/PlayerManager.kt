@@ -10,5 +10,13 @@ interface PlayerManager {
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)
+    fun setQueue(songs: List<Song>)
+    fun addToQueue(song: Song)
+    fun playNext(song: Song)
+    fun reorderQueue(fromIndex: Int, toIndex: Int)
+    fun clearQueue()
+    fun removeFromQueue(songId: String)
+    fun setShuffleModeEnabled(enabled: Boolean)
+    fun setRepeatMode(repeatMode: Int)
     fun release()
 }

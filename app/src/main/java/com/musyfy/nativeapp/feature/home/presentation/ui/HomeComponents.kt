@@ -1,40 +1,41 @@
 package com.musyfy.nativeapp.feature.home.presentation.ui
 
 import androidx.compose.foundation.Image
-import com.musyfy.nativeapp.domain.model.Song
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import java.io.File
-import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.IntOffset
+import coil.compose.AsyncImage
 import com.musyfy.nativeapp.R
+import com.musyfy.nativeapp.domain.model.Playlist
+import com.musyfy.nativeapp.domain.model.Song
+import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
+import java.io.File
+import kotlin.math.roundToInt
 
 data class MockSong(
     val id: String,
@@ -118,6 +119,7 @@ fun LegacyHomeHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LegacySongRow(
     song: Song,
@@ -125,63 +127,88 @@ fun LegacySongRow(
     isActive: Boolean = false,
     onClick: () -> Unit = {},
     onDownloadClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onOptionClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onToggleLike: () -> Unit = {}
 ) {
-    val bg = if (isActive) Color(0x1AE53935) else Color.Transparent
-    val border = if (isActive) Color(0x33E53935) else Color.Transparent
+    val bg = if (isSelected) Color(0x26E53935) else if (isActive) Color(0x1AE53935) else Color.Transparent
+    val border = if (isSelected) Color(0x66E53935) else if (isActive) Color(0x33E53935) else Color.Transparent
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(bg, RoundedCornerShape(10.dp))
             .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Selection Checkbox
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onClick() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = Color(0xFFE53935),
+                    uncheckedColor = Color(0x4DFFFFFF),
+                    checkmarkColor = Color.White
+                )
+            )
+        }
+
         val context = LocalContext.current
         val defaultLocalArt = File(context.filesDir, "${song.id}.jpg")
         val resolvedArtModel: Any? = when {
             !song.artworkPath.isNullOrEmpty() && File(song.artworkPath).exists() -> {
-                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, artworkPath=${song.artworkPath}, exists=true, loading from local artworkPath")
                 File(song.artworkPath)
             }
             defaultLocalArt.exists() -> {
-                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, defaultLocalArtPath=${defaultLocalArt.absolutePath}, exists=true, loading from local filesDir")
                 defaultLocalArt
             }
             !song.imageUrl.isNullOrEmpty() -> {
-                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, remoteUrl=${song.imageUrl}, loading from remote imageUrl")
                 song.imageUrl
             }
             else -> {
-                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, no artwork available, showing placeholder")
                 null
             }
         }
 
-        if (resolvedArtModel != null) {
-            AsyncImage(
-                model = resolvedArtModel,
-                contentDescription = "Song Artwork Thumbnail",
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF1A1A1A)),
-                contentScale = ContentScale.Crop,
-                error = painterResource(id = R.drawable.logo),
-                placeholder = painterResource(id = R.drawable.logo)
-            )
-        } else {
-            // Album art placeholder
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF1A1A1A)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (resolvedArtModel != null) {
+                AsyncImage(
+                    model = resolvedArtModel,
+                    contentDescription = "Song Artwork Thumbnail",
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(id = R.drawable.logo),
+                    placeholder = painterResource(id = R.drawable.logo)
+                )
+            } else {
                 Text(text = "🎵", fontSize = 20.sp)
+            }
+
+            if (isActive && !isSelectionMode) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color(0x99E53935)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "▶", color = Color.White, fontSize = 14.sp)
+                }
             }
         }
 
@@ -207,58 +234,169 @@ fun LegacySongRow(
             )
         }
 
-        // Download Action Button
-        Box(
+        if (!isSelectionMode) {
+            // Download Action Button
+            Box(
+                modifier = Modifier
+                    .clickable(onClick = onDownloadClick)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                when (downloadStatus) {
+                    is DownloadStatus.NotDownloaded -> {
+                        Text(text = "⬇", color = Color(0xFF666666), fontSize = 16.sp)
+                    }
+                    is DownloadStatus.Downloading -> {
+                        CircularProgressIndicator(
+                            progress = { downloadStatus.progress },
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFFE53935),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    is DownloadStatus.Downloaded -> {
+                        Text(text = "✅", color = Color(0xFF4CAF50), fontSize = 16.sp)
+                    }
+                    is DownloadStatus.Error -> {
+                        Text(text = "⚠️", color = Color(0xFFEF5350), fontSize = 16.sp)
+                    }
+                }
+            }
+
+            // Like Button
+            Text(
+                text = if (song.liked) "❤️" else "🤍",
+                fontSize = 16.sp,
+                modifier = Modifier
+                    .clickable { onToggleLike() }
+                    .padding(4.dp)
+            )
+
+            // Dropdown option menu
+            Text(
+                text = "⋮",
+                color = Color(0xFF666666),
+                fontSize = 18.sp,
+                modifier = Modifier
+                    .clickable { onOptionClick() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SwipeToRevealSongRow(
+    song: Song,
+    downloadStatus: DownloadStatus,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onDownloadClick: () -> Unit,
+    onOptionClick: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onToggleLike: () -> Unit = {}
+) {
+    val haptic = LocalHapticFeedback.current
+    var offsetX by remember { mutableStateOf(0f) }
+    val maxRevealWidth = 160f // Total width of hidden actions
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF141416))
+    ) {
+        // Revealed Actions
+        Row(
             modifier = Modifier
-                .clickable(onClick = onDownloadClick)
-                .padding(4.dp),
-            contentAlignment = Alignment.Center
+                .align(Alignment.CenterEnd)
+                .fillMaxHeight()
+                .padding(end = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            when (downloadStatus) {
-                is DownloadStatus.NotDownloaded -> {
-                    Text(text = "⬇", color = Color(0xFF666666), fontSize = 16.sp)
-                }
-                is DownloadStatus.Downloading -> {
-                    CircularProgressIndicator(
-                        progress = { downloadStatus.progress },
-                        modifier = Modifier.size(16.dp),
-                        color = Color(0xFFE53935),
-                        strokeWidth = 2.dp
-                    )
-                }
-                is DownloadStatus.Downloaded -> {
-                    Text(text = "✅", color = Color(0xFF4CAF50), fontSize = 16.sp)
-                }
-                is DownloadStatus.Error -> {
-                    Text(text = "⚠️", color = Color(0xFFEF5350), fontSize = 16.sp)
-                }
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onPlayNext()
+                    offsetX = 0f
+                },
+                modifier = Modifier.size(40.dp).background(Color(0x1AE53935), CircleShape)
+            ) {
+                Text("⏭️", fontSize = 14.sp)
+            }
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAddToPlaylist()
+                    offsetX = 0f
+                },
+                modifier = Modifier.size(40.dp).background(Color(0x1AE53935), CircleShape)
+            ) {
+                Text("📚", fontSize = 14.sp)
+            }
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDelete()
+                    offsetX = 0f
+                },
+                modifier = Modifier.size(40.dp).background(Color(0x1AEF5350), CircleShape)
+            ) {
+                Text("🗑️", fontSize = 14.sp)
             }
         }
 
-        // Like Button
-        Text(
-            text = if (song.liked) "❤️" else "🤍",
-            fontSize = 16.sp,
-            modifier = Modifier
-                .clickable { }
-                .padding(4.dp)
-        )
+        val dragState = rememberDraggableState { delta ->
+            if (!isSelectionMode) {
+                offsetX = (offsetX + delta).coerceIn(-maxRevealWidth, 0f)
+            }
+        }
 
-        // Dropdown option menu
-        Text(
-            text = "⋮",
-            color = Color(0xFF666666),
-            fontSize = 18.sp,
+        LegacySongRow(
+            song = song,
+            downloadStatus = downloadStatus,
+            isActive = isActive,
+            onClick = {
+                if (offsetX < -10f) {
+                    offsetX = 0f
+                } else {
+                    onClick()
+                }
+            },
+            onDownloadClick = onDownloadClick,
+            onOptionClick = onOptionClick,
+            isSelectionMode = isSelectionMode,
+            isSelected = isSelected,
+            onLongClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLongClick()
+            },
+            onToggleLike = onToggleLike,
             modifier = Modifier
-                .clickable { }
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .draggable(
+                    state = dragState,
+                    orientation = Orientation.Horizontal,
+                    enabled = !isSelectionMode,
+                    onDragStopped = {
+                        offsetX = if (offsetX < -maxRevealWidth / 2f) -maxRevealWidth else 0f
+                    }
+                )
+                .background(Color(0xFF070708))
         )
     }
 }
 
 @Composable
 fun LegacyPlaylistRow(
-    playlist: MockPlaylist,
+    playlist: Playlist,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -292,7 +430,7 @@ fun LegacyPlaylistRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "${playlist.songCount} ${if (playlist.songCount == 1) "song" else "songs"}",
+                text = "${playlist.songIds.size} ${if (playlist.songIds.size == 1) "song" else "songs"}",
                 color = Color(0xFF666666),
                 fontSize = 12.sp
             )

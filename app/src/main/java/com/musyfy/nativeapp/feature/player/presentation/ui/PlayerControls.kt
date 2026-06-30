@@ -22,9 +22,13 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PlayerControls(
     isPlaying: Boolean,
+    shuffleModeEnabled: Boolean,
+    repeatMode: Int,
     onPlayPauseClick: () -> Unit,
     onPrevClick: () -> Unit,
     onNextClick: () -> Unit,
+    onShuffleToggle: () -> Unit,
+    onRepeatToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -34,7 +38,17 @@ fun PlayerControls(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Previous Button
+        // 1. Shuffle Toggle Button
+        Text(
+            text = "🔀",
+            color = if (shuffleModeEnabled) Color(0xFFE53935) else Color(0xFF666666),
+            fontSize = 22.sp,
+            modifier = Modifier
+                .clickable { onShuffleToggle() }
+                .padding(8.dp)
+        )
+
+        // 2. Previous Button
         Text(
             text = "⏮",
             color = Color(0xFFCCCCCC),
@@ -44,7 +58,7 @@ fun PlayerControls(
                 .padding(8.dp)
         )
 
-        // 2. Play/Pause Button (68dp circular red-gradient button)
+        // 3. Play/Pause Button (68dp circular red-gradient button)
         Box(
             modifier = Modifier
                 .size(68.dp)
@@ -63,13 +77,28 @@ fun PlayerControls(
             )
         }
 
-        // 3. Next Button
+        // 4. Next Button
         Text(
             text = "⏭",
             color = Color(0xFFCCCCCC),
             fontSize = 32.sp,
             modifier = Modifier
                 .clickable { onNextClick() }
+                .padding(8.dp)
+        )
+
+        // 5. Repeat Toggle Button
+        val repeatText = when (repeatMode) {
+            1 -> "🔂"
+            else -> "🔁"
+        }
+        val repeatColor = if (repeatMode != 0) Color(0xFFE53935) else Color(0xFF666666)
+        Text(
+            text = repeatText,
+            color = repeatColor,
+            fontSize = 22.sp,
+            modifier = Modifier
+                .clickable { onRepeatToggle() }
                 .padding(8.dp)
         )
     }

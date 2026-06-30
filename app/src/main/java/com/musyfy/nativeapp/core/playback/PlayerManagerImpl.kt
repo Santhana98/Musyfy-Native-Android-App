@@ -119,6 +119,18 @@ class PlayerManagerImpl @Inject constructor(
                 }
             }
         }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            _playbackUiState.update {
+                it.copy(shuffleModeEnabled = shuffleModeEnabled)
+            }
+        }
+
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            _playbackUiState.update {
+                it.copy(repeatMode = repeatMode)
+            }
+        }
     }
 
     init {
@@ -145,7 +157,8 @@ class PlayerManagerImpl @Inject constructor(
                                 currentSong = song,
                                 currentPositionMs = lastPosition,
                                 state = PlayerState.PAUSED,
-                                isPlaying = false
+                                isPlaying = false,
+                                queue = allSongs
                             )
                         }
                         
@@ -164,17 +177,19 @@ class PlayerManagerImpl @Inject constructor(
     override fun playSong(song: Song) {
         coroutineScope.launch {
             android.util.Log.d("MusyfyPlayback", "PlayerManager: playSong requested for song ID=${song.id}")
+            
+            // Load all songs, checking for local files first (m4a/mp3/artwork)
+            val allSongs = songRepository.getSongs().first()
             _playbackUiState.update {
                 it.copy(
                     currentSong = song,
                     state = PlayerState.LOADING,
                     isPlaying = false,
-                    errorMessage = null
+                    errorMessage = null,
+                    queue = allSongs
                 )
             }
             
-            // Load all songs, checking for local files first (m4a/mp3/artwork)
-            val allSongs = songRepository.getSongs().first()
             val mediaItems = allSongs.map { s ->
                 val mediaItem = SongMapper.toMediaItem(s, context)
                 android.util.Log.d("MusyfyPlayback", "PlayerManager: Mapped song ID=${s.id} to URI=${mediaItem.localConfiguration?.uri}")
@@ -213,6 +228,116 @@ class PlayerManagerImpl @Inject constructor(
             }
             _playbackUiState.value.currentSong?.let { song ->
                 savePlaybackState(song.id, positionMs)
+            }
+        }
+    }
+
+    override fun setQueue(songs: List<Song>) {
+        coroutineScope.launch {
+            val mediaItems = songs.map { s -> SongMapper.toMediaItem(s, context) }
+            exoPlayer.setMediaItems(mediaItems)
+            _playbackUiState.update {
+                it.copy(queue = songs)
+            }
+        }
+    }
+
+    override fun addToQueue(song: Song) {
+        coroutineScope.launch {
+            val currentQueue = _playbackUiState.value.queue
+            if (currentQueue.none { it.id == song.id }) {
+                val updatedQueue = currentQueue + song
+                val mediaItem = SongMapper.toMediaItem(song, context)
+                exoPlayer.addMediaItem(mediaItem)
+                _playbackUiState.update {
+                    it.copy(queue = updatedQueue)
+                }
+            }
+        }
+    }
+
+    override fun playNext(song: Song) {
+        coroutineScope.launch {
+            val currentQueue = _playbackUiState.value.queue.toMutableList()
+            val mediaItem = SongMapper.toMediaItem(song, context)
+            
+            // Remove existing item to avoid duplicate index issues in queue
+            val existingIndex = currentQueue.indexOfFirst { it.id == song.id }
+            if (existingIndex != -1) {
+                currentQueue.removeAt(existingIndex)
+                exoPlayer.removeMediaItem(existingIndex)
+            }
+
+            val currentIndex = exoPlayer.currentMediaItemIndex
+            val insertIndex = if (currentIndex == -1) 0 else (currentIndex + 1).coerceAtMost(currentQueue.size)
+            
+            currentQueue.add(insertIndex, song)
+            exoPlayer.addMediaItem(insertIndex, mediaItem)
+            
+            _playbackUiState.update {
+                it.copy(queue = currentQueue)
+            }
+        }
+    }
+
+    override fun reorderQueue(fromIndex: Int, toIndex: Int) {
+        coroutineScope.launch {
+            val currentQueue = _playbackUiState.value.queue.toMutableList()
+            if (fromIndex in currentQueue.indices && toIndex in currentQueue.indices) {
+                val song = currentQueue.removeAt(fromIndex)
+                currentQueue.add(toIndex, song)
+                exoPlayer.moveMediaItem(fromIndex, toIndex)
+                _playbackUiState.update {
+                    it.copy(queue = currentQueue)
+                }
+            }
+        }
+    }
+
+    override fun clearQueue() {
+        coroutineScope.launch {
+            exoPlayer.clearMediaItems()
+            _playbackUiState.update {
+                it.copy(
+                    queue = emptyList(),
+                    currentSong = null,
+                    currentPositionMs = 0L,
+                    durationMs = 0L,
+                    isPlaying = false,
+                    state = PlayerState.IDLE
+                )
+            }
+        }
+    }
+
+    override fun removeFromQueue(songId: String) {
+        coroutineScope.launch {
+            val currentQueue = _playbackUiState.value.queue
+            val index = currentQueue.indexOfFirst { it.id == songId }
+            if (index != -1) {
+                val updatedQueue = currentQueue.filter { it.id != songId }
+                exoPlayer.removeMediaItem(index)
+                _playbackUiState.update {
+                    it.copy(queue = updatedQueue)
+                }
+            }
+        }
+    }
+
+    override fun setShuffleModeEnabled(enabled: Boolean) {
+        coroutineScope.launch {
+            exoPlayer.shuffleModeEnabled = enabled
+            _playbackUiState.update {
+                it.copy(shuffleModeEnabled = enabled)
+            }
+        }
+    }
+
+    override fun setRepeatMode(repeatMode: Int) {
+        coroutineScope.launch {
+            exoPlayer.repeatMode = repeatMode
+            _playbackUiState.update {
+                it.copy(repeatMode = repeatMode)
             }
         }
     }

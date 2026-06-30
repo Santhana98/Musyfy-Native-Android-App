@@ -8,7 +8,10 @@ data class PlaybackUiState(
     val currentPositionMs: Long = 0L,
     val durationMs: Long = 0L,
     val isPlaying: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val queue: List<Song> = emptyList(),
+    val shuffleModeEnabled: Boolean = false,
+    val repeatMode: Int = 0 // 0 = OFF, 1 = ONE, 2 = ALL
 )
 
 enum class PlayerState {
