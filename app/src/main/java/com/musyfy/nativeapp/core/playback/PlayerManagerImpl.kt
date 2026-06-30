@@ -2,6 +2,7 @@ package com.musyfy.nativeapp.core.playback
 
 import android.content.Context
 import android.content.Intent
+import java.io.File
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -42,6 +43,14 @@ class PlayerManagerImpl @Inject constructor(
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             val isPlaying = exoPlayer.isPlaying
+            val stateName = when (playbackState) {
+                Player.STATE_IDLE -> "STATE_IDLE"
+                Player.STATE_BUFFERING -> "STATE_BUFFERING"
+                Player.STATE_READY -> "STATE_READY"
+                Player.STATE_ENDED -> "STATE_ENDED"
+                else -> "UNKNOWN"
+            }
+            android.util.Log.d("MusyfyPlayback", "ExoPlayer Listener: onPlaybackStateChanged: state=$stateName, isPlaying=$isPlaying, durationMs=${exoPlayer.duration}, currentPositionMs=${exoPlayer.currentPosition}")
             _playbackUiState.update {
                 it.copy(
                     isPlaying = isPlaying,
@@ -58,6 +67,7 @@ class PlayerManagerImpl @Inject constructor(
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            android.util.Log.d("MusyfyPlayback", "ExoPlayer Listener: onIsPlayingChanged: isPlaying=$isPlaying")
             _playbackUiState.update {
                 it.copy(
                     isPlaying = isPlaying,
@@ -73,6 +83,7 @@ class PlayerManagerImpl @Inject constructor(
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            android.util.Log.e("MusyfyPlayback", "ExoPlayer Listener: onPlayerError: errorCode=${error.errorCode}, errorMessage=${error.message}", error)
             _playbackUiState.update {
                 it.copy(
                     state = PlayerState.ERROR,
@@ -84,6 +95,7 @@ class PlayerManagerImpl @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            android.util.Log.d("MusyfyPlayback", "PlayerManager: onMediaItemTransition: MediaItem ID=${mediaItem?.mediaId}, URI=${mediaItem?.localConfiguration?.uri}")
             if (mediaItem == null) {
                 _playbackUiState.update {
                     it.copy(
@@ -93,13 +105,17 @@ class PlayerManagerImpl @Inject constructor(
                     )
                 }
             } else {
-                val song = SongMapper.toSong(mediaItem)
-                _playbackUiState.update {
-                    it.copy(
-                        currentSong = song,
-                        currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
-                        durationMs = exoPlayer.duration.coerceAtLeast(0L)
-                    )
+                coroutineScope.launch {
+                    val allSongs = songRepository.getSongs().first()
+                    val song = allSongs.find { it.id == mediaItem.mediaId } ?: SongMapper.toSong(mediaItem)
+                    android.util.Log.d("MusyfyPlayback", "PlayerManager: Resolved active Song: ID=${song.id}, Title=${song.title}, audioPath=${song.audioPath}")
+                    _playbackUiState.update {
+                        it.copy(
+                            currentSong = song,
+                            currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                            durationMs = exoPlayer.duration.coerceAtLeast(0L)
+                        )
+                    }
                 }
             }
         }
@@ -117,7 +133,11 @@ class PlayerManagerImpl @Inject constructor(
                     val allSongs = songRepository.getSongs().first()
                     val song = allSongs.find { it.id == lastSongId }
                     if (song != null) {
-                        val mediaItems = allSongs.map { SongMapper.toMediaItem(it) }
+                        val mediaItems = allSongs.map { s ->
+                            val mediaItem = SongMapper.toMediaItem(s, context)
+                            android.util.Log.d("MusyfyPlayback", "PlayerManager: Restore - Mapped ID=${s.id} to URI=${mediaItem.localConfiguration?.uri}")
+                            mediaItem
+                        }
                         val index = allSongs.indexOf(song).coerceAtLeast(0)
                         
                         _playbackUiState.update {
@@ -129,11 +149,13 @@ class PlayerManagerImpl @Inject constructor(
                             )
                         }
                         
+                        android.util.Log.d("MusyfyPlayback", "PlayerManager: Restore - Calling setMediaItems(items, index=$index, position=$lastPosition)")
                         exoPlayer.setMediaItems(mediaItems, index, lastPosition)
+                        android.util.Log.d("MusyfyPlayback", "PlayerManager: Restore - Calling prepare()")
                         exoPlayer.prepare()
                     }
                 } catch (e: Exception) {
-                    // Safe fallback
+                    android.util.Log.e("MusyfyPlayback", "PlayerManager: Restore failed", e)
                 }
             }
         }
@@ -141,6 +163,7 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun playSong(song: Song) {
         coroutineScope.launch {
+            android.util.Log.d("MusyfyPlayback", "PlayerManager: playSong requested for song ID=${song.id}")
             _playbackUiState.update {
                 it.copy(
                     currentSong = song,
@@ -150,13 +173,20 @@ class PlayerManagerImpl @Inject constructor(
                 )
             }
             
-            // Load all songs to enable next/previous media buttons automatically
+            // Load all songs, checking for local files first (m4a/mp3/artwork)
             val allSongs = songRepository.getSongs().first()
-            val mediaItems = allSongs.map { SongMapper.toMediaItem(it) }
+            val mediaItems = allSongs.map { s ->
+                val mediaItem = SongMapper.toMediaItem(s, context)
+                android.util.Log.d("MusyfyPlayback", "PlayerManager: Mapped song ID=${s.id} to URI=${mediaItem.localConfiguration?.uri}")
+                mediaItem
+            }
             val index = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
             
+            android.util.Log.d("MusyfyPlayback", "PlayerManager: Calling setMediaItems(items, index=$index, position=0)")
             exoPlayer.setMediaItems(mediaItems, index, 0L)
+            android.util.Log.d("MusyfyPlayback", "PlayerManager: Calling prepare()")
             exoPlayer.prepare()
+            android.util.Log.d("MusyfyPlayback", "PlayerManager: Calling play()")
             exoPlayer.play()
             startService()
         }

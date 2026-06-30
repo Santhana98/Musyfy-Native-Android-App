@@ -7,5 +7,7 @@ data class Song(
     val url: String,
     val imageUrl: String? = null,
     val durationMs: Long = 0L,
-    val liked: Boolean = false
+    val liked: Boolean = false,
+    val audioPath: String? = null,
+    val artworkPath: String? = null
 )

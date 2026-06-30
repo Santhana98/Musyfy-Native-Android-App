@@ -51,12 +51,27 @@ fun MainScreen(
                     "$minutes:${if (seconds < 10) "0" else ""}$seconds"
                 }
 
+                val artworkModel = when {
+                    currentSong?.artworkPath != null && java.io.File(currentSong.artworkPath).exists() -> {
+                        android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, artworkPath=${currentSong.artworkPath}, exists=true, loading from local artworkPath")
+                        java.io.File(currentSong.artworkPath)
+                    }
+                    currentSong?.imageUrl != null -> {
+                        android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, remoteUrl=${currentSong.imageUrl}, loading from remote imageUrl")
+                        currentSong.imageUrl
+                    }
+                    else -> {
+                        android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong?.id}, no artwork available, showing placeholder")
+                        null
+                    }
+                }
+
                 MiniPlayerPlaceholder(
                     songTitle = currentSong?.title ?: "No Song Playing",
                     artistName = currentSong?.artist.orEmpty(),
                     isPlaying = uiState.isPlaying,
                     progressPct = progressPct,
-                    imageUrl = currentSong?.imageUrl,
+                    imageUrl = artworkModel,
                     currentTimeText = formatTime(uiState.currentPositionMs),
                     durationText = formatTime(uiState.durationMs),
                     durationMs = uiState.durationMs,
@@ -100,10 +115,16 @@ fun MainScreen(
                     .padding(bottom = innerPadding.calculateBottomPadding())
             ) {
                 when (activeTab) {
-                    "home" -> HomeScreen(viewModel = viewModel)
+                    "home" -> HomeScreen(
+                        viewModel = viewModel,
+                        onNavigateToUpload = { activeTab = "upload" }
+                    )
                     "search" -> SearchScreen()
                     "liked" -> LikedScreen()
-                    "upload" -> UploadScreen()
+                    "upload" -> UploadScreen(
+                        viewModel = viewModel,
+                        onNavigateToHome = { activeTab = "home" }
+                    )
                     "settings" -> SettingsScreen()
                 }
             }

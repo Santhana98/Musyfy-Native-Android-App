@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
+import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -42,6 +43,7 @@ import com.musyfy.nativeapp.R
 
 @Composable
 fun HomeScreen(
+    onNavigateToUpload: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
@@ -50,6 +52,7 @@ fun HomeScreen(
 
     val songs by viewModel.songs.collectAsState()
     val uiState by viewModel.playbackUiState.collectAsState()
+    val downloadStatuses by viewModel.downloadStatuses.collectAsState()
 
     // Filter songs based on active tab
     val filteredSongs = when (activeTab) {
@@ -211,15 +214,19 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 filteredSongs.forEach { song ->
+                    val status = downloadStatuses[song.id] ?: DownloadStatus.NotDownloaded
                     LegacySongRow(
-                        song = MockSong(
-                            id = song.id,
-                            title = song.title,
-                            artist = song.artist,
-                            liked = song.liked
-                        ),
+                        song = song,
+                        downloadStatus = status,
                         isActive = uiState.currentSong?.id == song.id,
-                        onClick = { viewModel.playSong(song) }
+                        onClick = { viewModel.playSong(song) },
+                        onDownloadClick = {
+                            if (status is DownloadStatus.Downloaded) {
+                                viewModel.deleteDownloadedSong(song.id)
+                            } else if (status !is DownloadStatus.Downloading) {
+                                viewModel.startDownload(song)
+                            }
+                        }
                     )
                 }
             }
@@ -276,7 +283,7 @@ fun HomeScreen(
                 .padding(top = 80.dp, end = 20.dp) // Repositioned to 80dp top padding to align with "Welcome back"
                 .size(42.dp)
                 .background(Color(0xFFE53935), CircleShape)
-                .clickable { },
+                .clickable { onNavigateToUpload() },
             contentAlignment = Alignment.Center
         ) {
             Text(

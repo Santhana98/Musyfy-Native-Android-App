@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
+import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 
 @Composable
 fun FullPlayerScreen(
@@ -43,6 +44,7 @@ fun FullPlayerScreen(
 
     val uiState by viewModel.playbackUiState.collectAsState()
     val currentSong = uiState.currentSong
+    val downloadStatuses by viewModel.downloadStatuses.collectAsState()
 
     Box(
         modifier = modifier
@@ -111,22 +113,64 @@ fun FullPlayerScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // Download icon placeholder (⬇)
-                Text(
-                    text = "⬇",
-                    color = Color(0xFFE53935),
-                    fontSize = 20.sp,
+
+                // Download icon with dynamic state tracking
+                val currentSongStatus = currentSong?.let { downloadStatuses[it.id] } ?: DownloadStatus.NotDownloaded
+                Box(
                     modifier = Modifier
-                        .clickable { }
+                        .clickable(enabled = currentSong != null) {
+                            currentSong?.let { song ->
+                                if (currentSongStatus is DownloadStatus.Downloaded) {
+                                    viewModel.deleteDownloadedSong(song.id)
+                                } else if (currentSongStatus !is DownloadStatus.Downloading) {
+                                    viewModel.startDownload(song)
+                                }
+                            }
+                        }
                         .padding(horizontal = 12.dp)
-                )
+                ) {
+                    when (currentSongStatus) {
+                        is DownloadStatus.NotDownloaded -> {
+                            Text(text = "⬇", color = Color(0xFFE53935), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                        is DownloadStatus.Downloading -> {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                progress = { currentSongStatus.progress },
+                                modifier = Modifier.size(20.dp),
+                                color = Color(0xFFE53935),
+                                strokeWidth = 2.5.dp
+                            )
+                        }
+                        is DownloadStatus.Downloaded -> {
+                            Text(text = "✅", color = Color(0xFF4CAF50), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                        is DownloadStatus.Error -> {
+                            Text(text = "⚠️", color = Color(0xFFEF5350), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.weight(0.4f))
 
             // 3. Rotating Vinyl Record Component
+            val artworkModel = when {
+                currentSong?.artworkPath != null && java.io.File(currentSong.artworkPath).exists() -> {
+                    android.util.Log.d("MusyfyPlayback", "Artwork [FullPlayer]: song.id=${currentSong.id}, artworkPath=${currentSong.artworkPath}, exists=true, loading from local artworkPath")
+                    java.io.File(currentSong.artworkPath)
+                }
+                currentSong?.imageUrl != null -> {
+                    android.util.Log.d("MusyfyPlayback", "Artwork [FullPlayer]: song.id=${currentSong.id}, remoteUrl=${currentSong.imageUrl}, loading from remote imageUrl")
+                    currentSong.imageUrl
+                }
+                else -> {
+                    android.util.Log.d("MusyfyPlayback", "Artwork [FullPlayer]: song.id=${currentSong?.id}, no artwork available, showing placeholder")
+                    null
+                }
+            }
+
             VinylPlayer(
-                imageUrl = currentSong?.imageUrl,
+                imageUrl = artworkModel,
                 isPlaying = uiState.isPlaying,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)

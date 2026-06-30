@@ -1,6 +1,12 @@
 package com.musyfy.nativeapp.feature.home.presentation.ui
 
 import androidx.compose.foundation.Image
+import com.musyfy.nativeapp.domain.model.Song
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import java.io.File
+import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,9 +120,11 @@ fun LegacyHomeHeader(
 
 @Composable
 fun LegacySongRow(
-    song: MockSong,
+    song: Song,
+    downloadStatus: DownloadStatus,
     isActive: Boolean = false,
     onClick: () -> Unit = {},
+    onDownloadClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val bg = if (isActive) Color(0x1AE53935) else Color.Transparent
@@ -132,14 +140,49 @@ fun LegacySongRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Album art placeholder
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = "🎵", fontSize = 20.sp)
+        val context = LocalContext.current
+        val defaultLocalArt = File(context.filesDir, "${song.id}.jpg")
+        val resolvedArtModel: Any? = when {
+            !song.artworkPath.isNullOrEmpty() && File(song.artworkPath).exists() -> {
+                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, artworkPath=${song.artworkPath}, exists=true, loading from local artworkPath")
+                File(song.artworkPath)
+            }
+            defaultLocalArt.exists() -> {
+                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, defaultLocalArtPath=${defaultLocalArt.absolutePath}, exists=true, loading from local filesDir")
+                defaultLocalArt
+            }
+            !song.imageUrl.isNullOrEmpty() -> {
+                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, remoteUrl=${song.imageUrl}, loading from remote imageUrl")
+                song.imageUrl
+            }
+            else -> {
+                android.util.Log.d("MusyfyPlayback", "Artwork [HomeComponents]: song.id=${song.id}, no artwork available, showing placeholder")
+                null
+            }
+        }
+
+        if (resolvedArtModel != null) {
+            AsyncImage(
+                model = resolvedArtModel,
+                contentDescription = "Song Artwork Thumbnail",
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1A1A1A)),
+                contentScale = ContentScale.Crop,
+                error = painterResource(id = R.drawable.logo),
+                placeholder = painterResource(id = R.drawable.logo)
+            )
+        } else {
+            // Album art placeholder
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "🎵", fontSize = 20.sp)
+            }
         }
 
         // Title and Artist
@@ -162,6 +205,34 @@ fun LegacySongRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+
+        // Download Action Button
+        Box(
+            modifier = Modifier
+                .clickable(onClick = onDownloadClick)
+                .padding(4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when (downloadStatus) {
+                is DownloadStatus.NotDownloaded -> {
+                    Text(text = "⬇", color = Color(0xFF666666), fontSize = 16.sp)
+                }
+                is DownloadStatus.Downloading -> {
+                    CircularProgressIndicator(
+                        progress = { downloadStatus.progress },
+                        modifier = Modifier.size(16.dp),
+                        color = Color(0xFFE53935),
+                        strokeWidth = 2.dp
+                    )
+                }
+                is DownloadStatus.Downloaded -> {
+                    Text(text = "✅", color = Color(0xFF4CAF50), fontSize = 16.sp)
+                }
+                is DownloadStatus.Error -> {
+                    Text(text = "⚠️", color = Color(0xFFEF5350), fontSize = 16.sp)
+                }
+            }
         }
 
         // Like Button

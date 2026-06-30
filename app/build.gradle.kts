@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.musyfy.nativeapp"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -36,6 +36,11 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -81,6 +86,10 @@ dependencies {
 
     // AndroidX Palette for dynamic note colors
     implementation(libs.androidx.palette)
+
+    // YouTube Downloader Engine (yt-dlp wrapper)
+    implementation(libs.youtubedl.android)
+    implementation(libs.youtubedl.android.ffmpeg)
 
     // Testing
     testImplementation(libs.junit)
