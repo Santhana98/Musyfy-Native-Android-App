@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -57,11 +58,12 @@ fun MusyfyTopBar(
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "Musyfy",
-                color = Color(0xFFE53935),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
+                color = Color(0xFFF9423A),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Serif
             )
         }
@@ -115,7 +117,7 @@ fun MusyfyBottomNavigationBar(
         ) {
             tabs.forEach { tab ->
                 val isActive = activeTab == tab.id
-                val tabColor = if (isActive) Color(0xFFE53935) else Color(0xFF555555)
+                val tabColor = if (isActive) Color(0xFFF9423A) else Color(0xFF555555)
 
                 Column(
                     modifier = Modifier

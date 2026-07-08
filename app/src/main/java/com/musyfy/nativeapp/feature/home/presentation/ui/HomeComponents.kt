@@ -91,8 +91,8 @@ fun LegacyHomeHeader(
                 contentScale = ContentScale.Crop
             )
             Text(
-                text = "Musy-Fi",
-                color = Color(0xFFE53935),
+                text = "Musyfy",
+                color = Color(0xFFF9423A),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = FontFamily.Serif
@@ -134,8 +134,8 @@ fun LegacySongRow(
     onLongClick: () -> Unit = {},
     onToggleLike: () -> Unit = {}
 ) {
-    val bg = if (isSelected) Color(0x26E53935) else if (isActive) Color(0x1AE53935) else Color.Transparent
-    val border = if (isSelected) Color(0x66E53935) else if (isActive) Color(0x33E53935) else Color.Transparent
+    val bg = if (isSelected) Color(0x26F9423A) else if (isActive) Color(0x1AF9423A) else Color.Transparent
+    val border = if (isSelected) Color(0x66F9423A) else if (isActive) Color(0x33F9423A) else Color.Transparent
 
     Row(
         modifier = modifier
@@ -156,7 +156,7 @@ fun LegacySongRow(
                 checked = isSelected,
                 onCheckedChange = { onClick() },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFFE53935),
+                    checkedColor = Color(0xFFF9423A),
                     uncheckedColor = Color(0x4DFFFFFF),
                     checkmarkColor = Color.White
                 )
@@ -204,7 +204,7 @@ fun LegacySongRow(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(Color(0x99E53935)),
+                        .background(Color(0x99F9423A)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = "▶", color = Color.White, fontSize = 14.sp)
@@ -218,7 +218,7 @@ fun LegacySongRow(
         ) {
             Text(
                 text = song.title,
-                color = if (isActive) Color(0xFFE53935) else Color.White,
+                color = if (isActive) Color(0xFFF9423A) else Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -250,7 +250,7 @@ fun LegacySongRow(
                         CircularProgressIndicator(
                             progress = { downloadStatus.progress },
                             modifier = Modifier.size(16.dp),
-                            color = Color(0xFFE53935),
+                            color = Color(0xFFF9423A),
                             strokeWidth = 2.dp
                         )
                     }
@@ -310,46 +310,47 @@ fun SwipeToRevealSongRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF141416))
     ) {
-        // Revealed Actions
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .padding(end = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onPlayNext()
-                    offsetX = 0f
-                },
-                modifier = Modifier.size(40.dp).background(Color(0x1AE53935), CircleShape)
+        // Revealed Actions (only rendered when swiped to prevent showing through the transparent card)
+        if (offsetX < 0f) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .padding(end = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("⏭️", fontSize = 14.sp)
-            }
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onAddToPlaylist()
-                    offsetX = 0f
-                },
-                modifier = Modifier.size(40.dp).background(Color(0x1AE53935), CircleShape)
-            ) {
-                Text("📚", fontSize = 14.sp)
-            }
-            IconButton(
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onDelete()
-                    offsetX = 0f
-                },
-                modifier = Modifier.size(40.dp).background(Color(0x1AEF5350), CircleShape)
-            ) {
-                Text("🗑️", fontSize = 14.sp)
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onPlayNext()
+                        offsetX = 0f
+                    },
+                    modifier = Modifier.size(40.dp).background(Color(0x1AF9423A), CircleShape)
+                ) {
+                    Text("⏭️", fontSize = 14.sp)
+                }
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onAddToPlaylist()
+                        offsetX = 0f
+                    },
+                    modifier = Modifier.size(40.dp).background(Color(0x1AF9423A), CircleShape)
+                ) {
+                    Text("📚", fontSize = 14.sp)
+                }
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onDelete()
+                        offsetX = 0f
+                    },
+                    modifier = Modifier.size(40.dp).background(Color(0x1AEF5350), CircleShape)
+                ) {
+                    Text("🗑️", fontSize = 14.sp)
+                }
             }
         }
 
@@ -389,7 +390,6 @@ fun SwipeToRevealSongRow(
                         offsetX = if (offsetX < -maxRevealWidth / 2f) -maxRevealWidth else 0f
                     }
                 )
-                .background(Color(0xFF070708))
         )
     }
 }

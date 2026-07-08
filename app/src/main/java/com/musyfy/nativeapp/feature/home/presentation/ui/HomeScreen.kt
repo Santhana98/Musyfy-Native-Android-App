@@ -164,7 +164,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Add 📚",
-                            color = Color(0xFFE53935),
+                            color = Color(0xFFF9423A),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable {
@@ -197,71 +197,45 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(76.dp)) // Offset to prevent top bar overlap when unscrolled
                 }
 
-                // Welcome Text header section (mockup layout: text left, earbuds + upload button right)
+                // Welcome Text header section (mockup layout: text left, upload button right)
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
+                        Text(
+                            text = "Welcome back to\nthe Music Club",
+                            color = Color.White,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = FontFamily.SansSerif,
+                            letterSpacing = (-0.5).sp,
+                            lineHeight = 36.sp,
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = "Welcome back to\nthe Music Club",
-                                color = Color.White,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = FontFamily.SansSerif,
-                                letterSpacing = (-0.15).sp,
-                                lineHeight = 28.sp,
-                                modifier = Modifier.padding(top = 10.dp)
-                            )
-                        }
+                        )
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 4.dp, end = 4.dp)
+                        // Upload Button (+)
+                        Box(
+                            modifier = Modifier
+                                .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
+                                .size(38.dp)
+                                .background(Color(0xFFF9423A), CircleShape)
+                                .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                                .clickable { onNavigateToUpload() },
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Earbuds illustration image (transparent, cropped to bounding box)
-                            Image(
-                                painter = painterResource(id = R.drawable.earbuds),
-                                contentDescription = "Premium Earbuds Illustration",
-                                modifier = Modifier
-                                    .width(80.dp)
-                                    .height(53.dp)
-                                    .padding(top = 2.dp, end = 2.dp),
-                                contentScale = ContentScale.Fit
+                            Text(
+                                text = "+",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Normal,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
-
-                            // Upload Button (+)
-                            Box(
-                                modifier = Modifier
-                                    .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
-                                    .size(38.dp)
-                                    .background(
-                                        Brush.radialGradient(
-                                            colors = listOf(Color(0xFFE53935), Color(0xFFB71C1C))
-                                        ),
-                                        CircleShape
-                                    )
-                                    .border(1.dp, Color(0x33FFFFFF), CircleShape)
-                                    .clickable { onNavigateToUpload() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+",
-                                    color = Color.White,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(bottom = 2.dp)
-                                )
-                            }
                         }
                     }
                 }
@@ -277,10 +251,10 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0x1F000000), RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(12.dp))
+                                .background(Color(0x22FFFFFF), RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(12.dp))
                                 .clickable { }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
@@ -325,9 +299,9 @@ fun HomeScreen(
                         )
                         tabs.forEach { (id, label, _) ->
                             val isActive = activeTab == id
-                            val bg = if (isActive) Color(0xFF8C1D1D) else Color(0x0DFFFFFF)
-                            val borderColor = if (isActive) Color.Transparent else Color(0xFF2A2A2A)
-                            val textCol = if (isActive) Color.White else Color(0xFF888888)
+                            val bg = if (isActive) Color(0x40F9423A) else Color(0x14FFFFFF)
+                            val borderColor = if (isActive) Color(0xFFF9423A) else Color(0x26FFFFFF)
+                            val textCol = if (isActive) Color.White else Color(0xFFCCCCCC)
 
                             Box(
                                 modifier = Modifier
@@ -448,7 +422,7 @@ fun HomeScreen(
                         }
                         Text(
                             text = "+",
-                            color = Color(0xFFE53935),
+                            color = Color(0xFFF9423A),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Black,
                             modifier = Modifier
@@ -498,7 +472,7 @@ fun HomeScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFE53935),
+                        focusedBorderColor = Color(0xFFF9423A),
                         unfocusedBorderColor = Color(0x33FFFFFF)
                     ),
                     singleLine = true
@@ -514,7 +488,7 @@ fun HomeScreen(
                         }
                     }
                 ) {
-                    Text("CREATE", color = Color(0xFFE53935))
+                    Text("CREATE", color = Color(0xFFF9423A))
                 }
             },
             dismissButton = {
