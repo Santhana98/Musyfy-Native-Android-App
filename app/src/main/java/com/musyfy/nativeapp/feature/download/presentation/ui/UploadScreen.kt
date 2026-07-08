@@ -47,13 +47,13 @@ fun UploadScreen(
     var error by remember { mutableStateOf("") }
 
     val colors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = Color(0xFFE53935),
-        unfocusedBorderColor = Color(0xFF2A2A2A),
-        focusedLabelColor = Color(0xFFE53935),
-        unfocusedLabelColor = Color(0xFF888888),
-        cursorColor = Color(0xFFE53935),
-        focusedContainerColor = Color(0xFF0D0D0D),
-        unfocusedContainerColor = Color(0xFF0D0D0D),
+        focusedBorderColor = Color(0x4DF9423A), // Subtle brand halo border
+        unfocusedBorderColor = Color(0x12FFFFFF), // Soft glass border
+        focusedLabelColor = Color(0xFFF9423A),
+        unfocusedLabelColor = Color(0x8CFFFFFF),
+        cursorColor = Color(0xFFF9423A),
+        focusedContainerColor = Color(0x1AFFFFFF), // Glass background
+        unfocusedContainerColor = Color(0x0FFFFFFF),
         focusedTextColor = Color.White,
         unfocusedTextColor = Color.White
     )
@@ -63,7 +63,11 @@ fun UploadScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF141414), Color(0xFF070708))
+                    colors = listOf(
+                        Color(0xAA000000), // 66% black top
+                        Color(0xFB070708), // 98% opacity
+                        Color(0xFF070708)  // Solid base color
+                    )
                 )
             )
             .padding(horizontal = 24.dp, vertical = 16.dp),
@@ -89,12 +93,13 @@ fun UploadScreen(
             Text(
                 text = "🎵 Add YouTube Song",
                 color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold, // SemiBold typography
+                letterSpacing = (-0.5).sp
             )
             Text(
                 text = "Song appears in your library instantly — streams while saving in background",
-                color = Color(0xFF888888),
+                color = Color(0xFF9E9E9E), // Higher contrast grey
                 fontSize = 13.sp,
                 lineHeight = 18.sp
             )
@@ -106,27 +111,27 @@ fun UploadScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0x15E53935), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0x33E53935), RoundedCornerShape(12.dp))
+                        .background(Color(0x0DF9423A), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0x26F9423A), RoundedCornerShape(12.dp))
                         .padding(24.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(36.dp),
-                        color = Color(0xFFE53935),
+                        color = Color(0xFFF9423A),
                         strokeWidth = 3.dp
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
                         text = "Adding to your library...",
-                        color = Color(0xFFE53935),
+                        color = Color(0xFFF9423A),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Text(
                         text = "Song will appear instantly and start playing!",
-                        color = Color(0xFF666666),
+                        color = Color(0xFF8E8E93),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 4.dp)
                     )
@@ -140,6 +145,7 @@ fun UploadScreen(
                     placeholder = { Text("https://youtube.com/watch?v=...") },
                     singleLine = true,
                     colors = colors,
+                    shape = RoundedCornerShape(12.dp), // Consistent 12dp rounded corner
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Uri,
@@ -176,9 +182,9 @@ fun UploadScreen(
                         .background(
                             brush = Brush.linearGradient(
                                 colors = if (isUrlFilled) {
-                                    listOf(Color(0xFFE53935), Color(0xFFC62828))
+                                    listOf(Color(0xFFF9423A), Color(0xFFD32F2F)) // brand red gradient
                                 } else {
-                                    listOf(Color(0xFF424242), Color(0xFF303030))
+                                    listOf(Color(0xFF3A3A3C), Color(0xFF2C2C2E)) // premium dark grey gradient
                                 }
                             ),
                             shape = RoundedCornerShape(12.dp)
@@ -213,7 +219,7 @@ fun UploadScreen(
 
             Text(
                 text = "✓ Streams from your IP  ·  ✓ Cached for offline  ·  ✓ Download anytime",
-                color = Color(0xFF444444),
+                color = Color(0xFF555558),
                 fontSize = 11.sp,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 fontWeight = FontWeight.Medium

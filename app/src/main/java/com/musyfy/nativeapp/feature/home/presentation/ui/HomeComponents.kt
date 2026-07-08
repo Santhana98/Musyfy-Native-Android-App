@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,33 +39,7 @@ import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import java.io.File
 import kotlin.math.roundToInt
 
-data class MockSong(
-    val id: String,
-    val title: String,
-    val artist: String?,
-    val liked: Boolean = false,
-    val importStatus: String = "ready"
-)
 
-val mockSongsList = listOf(
-    MockSong("1", "Vibe Session", "Musyfy Artist", true),
-    MockSong("2", "Cassette Rewind", "Cassette Player", false),
-    MockSong("3", "Midnight Ride", "Synthwave DJ", false),
-    MockSong("4", "Lo-Fi Coffee", "Beatmaker Chill", true),
-    MockSong("5", "Acoustic Sun", "Folksy Singer", false)
-)
-
-data class MockPlaylist(
-    val id: String,
-    val name: String,
-    val songCount: Int
-)
-
-val mockPlaylistsList = listOf(
-    MockPlaylist("1", "My Playlist #1", 5),
-    MockPlaylist("2", "Chill Mix", 12),
-    MockPlaylist("3", "Workout Beats", 8)
-)
 
 @Composable
 fun LegacyHomeHeader(
@@ -134,20 +110,20 @@ fun LegacySongRow(
     onLongClick: () -> Unit = {},
     onToggleLike: () -> Unit = {}
 ) {
-    val bg = if (isSelected) Color(0x26F9423A) else if (isActive) Color(0x1AF9423A) else Color.Transparent
-    val border = if (isSelected) Color(0x66F9423A) else if (isActive) Color(0x33F9423A) else Color.Transparent
+    val bg = if (isSelected) Color(0x33F9423A) else if (isActive) Color(0x1EF9423A) else Color(0x0AFFFFFF)
+    val border = if (isSelected) Color(0x66F9423A) else if (isActive) Color(0x40F9423A) else Color(0x12FFFFFF)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(bg, RoundedCornerShape(10.dp))
-            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(12.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Selection Checkbox
@@ -182,9 +158,10 @@ fun LegacySongRow(
 
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF1A1A1A)),
+                .size(48.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF1E1E20))
+                .border(0.5.dp, Color(0x1AFFFFFF), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (resolvedArtModel != null) {
@@ -204,7 +181,7 @@ fun LegacySongRow(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(Color(0x99F9423A)),
+                        .background(Color(0xB3F9423A)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = "▶", color = Color.White, fontSize = 14.sp)
@@ -212,23 +189,23 @@ fun LegacySongRow(
             }
         }
 
-        // Title and Artist
+        // Title and Artist with clean modern typography
         Column(
             modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = song.title,
                 color = if (isActive) Color(0xFFF9423A) else Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = song.artist ?: "Unknown",
-                color = Color(0xFF666666),
-                fontSize = 12.sp,
+                color = Color(0xFF9E9E9E),
+                fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -244,7 +221,7 @@ fun LegacySongRow(
             ) {
                 when (downloadStatus) {
                     is DownloadStatus.NotDownloaded -> {
-                        Text(text = "⬇", color = Color(0xFF666666), fontSize = 16.sp)
+                        Text(text = "⬇", color = Color(0xFF9E9E9E), fontSize = 16.sp)
                     }
                     is DownloadStatus.Downloading -> {
                         CircularProgressIndicator(
@@ -266,6 +243,7 @@ fun LegacySongRow(
             // Like Button
             Text(
                 text = if (song.liked) "❤️" else "🤍",
+                color = if (song.liked) Color(0xFFF9423A) else Color(0xFF9E9E9E),
                 fontSize = 16.sp,
                 modifier = Modifier
                     .clickable { onToggleLike() }
@@ -275,7 +253,7 @@ fun LegacySongRow(
             // Dropdown option menu
             Text(
                 text = "⋮",
-                color = Color(0xFF666666),
+                color = Color(0xFF9E9E9E),
                 fontSize = 18.sp,
                 modifier = Modifier
                     .clickable { onOptionClick() }
@@ -403,20 +381,21 @@ fun LegacyPlaylistRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0x0AFFFFFF), RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFF1A1A1A), RoundedCornerShape(10.dp))
+            .background(Color(0x0AFFFFFF), RoundedCornerShape(12.dp))
+            .border(1.dp, Color(0x12FFFFFF), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .background(Color(0xFF1A1A1A), RoundedCornerShape(8.dp)),
+                .size(52.dp)
+                .background(Color(0xFF1E1E20), RoundedCornerShape(10.dp))
+                .border(0.5.dp, Color(0x1AFFFFFF), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "📚", fontSize = 20.sp)
+            Text(text = "📚", fontSize = 22.sp)
         }
         
         Column(
@@ -425,14 +404,14 @@ fun LegacyPlaylistRow(
             Text(
                 text = playlist.name,
                 color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "${playlist.songIds.size} ${if (playlist.songIds.size == 1) "song" else "songs"}",
-                color = Color(0xFF666666),
-                fontSize = 12.sp
+                color = Color(0xFF9E9E9E),
+                fontSize = 13.sp
             )
         }
     }

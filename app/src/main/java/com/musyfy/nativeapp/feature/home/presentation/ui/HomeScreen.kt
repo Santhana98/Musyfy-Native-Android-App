@@ -57,6 +57,9 @@ import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
 import com.musyfy.nativeapp.domain.model.Song
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.shadow
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 
 @Composable
 fun HomeScreen(
@@ -106,23 +109,25 @@ fun HomeScreen(
                 playerViewModel = viewModel
             )
         } else {
-            // Theme Background Image
+            // Theme Background Image with per-theme alignment and premium scaling
             Image(
                 painter = painterResource(id = bgImageRes),
                 contentDescription = "Theme Background",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
             )
-
-            // Linear Gradient Overlay mimicking globals.css
+ 
+            // Linear Gradient Overlay mimicking globals.css (softened overlay for better background pop while maintaining text contrast)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0x8C000000), // rgba(0,0,0,0.55)
-                                Color(0xF20A0A0A)  // rgba(10,10,10,0.95)
+                                Color(0x80000000), // Softened 50% opacity black at the top
+                                Color(0xE6070708), // Softened 90% opacity transition
+                                Color(0xFF070708)  // Solid base color
                             )
                         )
                     )
@@ -197,64 +202,74 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(76.dp)) // Offset to prevent top bar overlap when unscrolled
                 }
 
-                // Welcome Text header section (mockup layout: text left, upload button right)
+                // Welcome Text header section (polished & spacious layout: text left, upload button right)
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
+                            .padding(horizontal = 24.dp, vertical = 16.dp), // Spacious padding
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
-                            text = "Welcome back to\nthe Music Club",
-                            color = Color.White,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Normal,
-                            fontFamily = FontFamily.SansSerif,
-                            letterSpacing = (-0.5).sp,
-                            lineHeight = 36.sp,
+                        Column(
                             modifier = Modifier.weight(1f)
-                        )
+                        ) {
+                            Text(
+                                text = "👋 Welcome Back",
+                                color = Color(0x99FFFFFF), // Beautiful low opacity white
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Normal,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "To the Music Club 🎵",
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = FontFamily.SansSerif,
+                                letterSpacing = (-0.5).sp,
+                                lineHeight = 34.sp
+                            )
+                        }
 
                         Spacer(modifier = Modifier.width(16.dp))
 
-                        // Upload Button (+)
+                        // Polished Floating Upload Button (+)
                         Box(
                             modifier = Modifier
-                                .shadow(elevation = 8.dp, shape = CircleShape, clip = false)
-                                .size(38.dp)
+                                .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                                .size(36.dp) // slightly smaller
                                 .background(Color(0xFFF9423A), CircleShape)
-                                .border(1.dp, Color(0x33FFFFFF), CircleShape)
                                 .clickable { onNavigateToUpload() },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "+",
                                 color = Color.White,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Normal,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
                     }
                 }
 
-                // Now playing preview bar spanning full available width below the Welcome section
+                // Now playing preview bar (soft premium glass container)
                 item {
                     val currentSong = uiState.currentSong
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .padding(horizontal = 24.dp, vertical = 8.dp) // Consistent 24dp horizontal padding
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0x22FFFFFF), RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(12.dp))
+                                .background(Color(0x0FFFFFFF), RoundedCornerShape(12.dp)) // Premium transparent glass card
+                                .border(1.dp, Color(0x14FFFFFF), RoundedCornerShape(12.dp))
                                 .clickable { }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
@@ -270,7 +285,7 @@ fun HomeScreen(
                                     "Select a song to play"
                                 },
                                 color = Color.White,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -281,16 +296,16 @@ fun HomeScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Tabs selection row
+                // Tabs selection row (Spotify-style chips)
                 item {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                            .padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
                     ) {
                         val tabs = listOf(
                             Triple("all", "🎵 All", "all"),
@@ -299,49 +314,62 @@ fun HomeScreen(
                         )
                         tabs.forEach { (id, label, _) ->
                             val isActive = activeTab == id
-                            val bg = if (isActive) Color(0x40F9423A) else Color(0x14FFFFFF)
-                            val borderColor = if (isActive) Color(0xFFF9423A) else Color(0x26FFFFFF)
-                            val textCol = if (isActive) Color.White else Color(0xFFCCCCCC)
+                            val bg by animateColorAsState(
+                                targetValue = if (isActive) Color(0xFFF9423A) else Color(0x0FFFFFFF),
+                                animationSpec = tween(durationMillis = 200),
+                                label = "chipBg"
+                            )
+                            val borderColor by animateColorAsState(
+                                targetValue = if (isActive) Color(0xFFF9423A) else Color(0x12FFFFFF),
+                                animationSpec = tween(durationMillis = 200),
+                                label = "chipBorder"
+                            )
+                            val textCol by animateColorAsState(
+                                targetValue = if (isActive) Color.White else Color(0xFFCCCCCC),
+                                animationSpec = tween(durationMillis = 200),
+                                label = "chipText"
+                            )
 
                             Box(
                                 modifier = Modifier
                                     .background(bg, RoundedCornerShape(20.dp))
-                                    .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                                    .border(1.5.dp, borderColor, RoundedCornerShape(20.dp))
                                     .clickable { activeTab = id }
-                                    .padding(horizontal = 16.dp, vertical = 7.dp),
+                                    .padding(horizontal = 14.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = label,
                                     color = textCol,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
                                 )
                             }
                         }
                     }
                 }
 
-                // Your Music Library header
+                // Your Music Library header (Clean hierarchy & styling)
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
                             text = "Your Music Library",
                             color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Default
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "${filteredSongs.size} songs",
-                            color = Color(0xFF555555),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            color = Color(0xFF9E9E9E), // Lower opacity count
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal
                         )
                     }
                 }
@@ -355,7 +383,7 @@ fun HomeScreen(
                         isActive = uiState.currentSong?.id == song.id,
                         isSelectionMode = isSelectionMode,
                         isSelected = selectedSongs.contains(song.id),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), // Consistent 24dp horizontal padding
                         onClick = {
                             if (isSelectionMode) {
                                 selectedSongs = if (selectedSongs.contains(song.id)) {
@@ -399,12 +427,12 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(28.dp))
                 }
 
-                // Playlists Header
+                // Playlists Header (Polished matching spacing)
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                            .padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -416,18 +444,19 @@ fun HomeScreen(
                             Text(
                                 text = "Your Playlists",
                                 color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = FontFamily.Default
                             )
                         }
                         Text(
                             text = "+",
                             color = Color(0xFFF9423A),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .clickable { showCreatePlaylistDialog = true }
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }

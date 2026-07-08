@@ -165,13 +165,13 @@ fun SettingsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🧑 Male Theme",
+                            text = "🧑 X Theme",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-
+ 
                     // Female Theme Toggle Button
                     Box(
                         modifier = Modifier
@@ -198,7 +198,7 @@ fun SettingsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "👩 Female Theme",
+                            text = "👩 Y Theme",
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold

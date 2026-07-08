@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -78,15 +80,16 @@ fun PlaylistDetailScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Linear Gradient Overlay mimicking globals.css
+        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x8C000000), // rgba(0,0,0,0.55)
-                            Color(0xF20A0A0A)  // rgba(10,10,10,0.95)
+                            Color(0xAA000000), // 66% opacity black at the top
+                            Color(0xFB070708), // 98% opacity of base color
+                            Color(0xFF070708)  // Solid base color
                         )
                     )
                 )
@@ -146,7 +149,7 @@ fun PlaylistDetailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp) // Premium 24dp horizontal margins
         ) {
             Spacer(modifier = Modifier.height(76.dp)) // Offset for Top App Bar
 
@@ -154,12 +157,12 @@ fun PlaylistDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "← Back",
-                    color = Color(0xFFE53935),
+                    color = Color(0xFFF9423A), // Brand Red back action
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.clickable { onCollapse() }
@@ -171,22 +174,24 @@ fun PlaylistDetailScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFE53935))
+                    CircularProgressIndicator(color = Color(0xFFF9423A))
                 }
             } else {
                 Text(
                     text = playlist.name,
                     color = Color.White,
                     fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.SemiBold, // SemiBold weight
+                    letterSpacing = (-0.5).sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${playlistSongs.size} songs",
-                    color = Color(0xFF888888),
+                    color = Color(0xFF9E9E9E), // Lower opacity count
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Normal
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -196,7 +201,7 @@ fun PlaylistDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Play All Button
+                    // Play All Button (gorgeous brand red)
                     Button(
                         onClick = {
                             if (playlistSongs.isNotEmpty()) {
@@ -204,22 +209,22 @@ fun PlaylistDetailScreen(
                             }
                         },
                         modifier = Modifier.weight(1.5f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                        shape = RoundedCornerShape(20.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF9423A)),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(text = "▶ PLAY ALL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
 
-                    // Edit Button
+                    // Edit Button (Rename)
                     Button(
                         onClick = {
                             renameValue = playlist.name
                             showRenameDialog = true
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x1AFFFFFF)),
-                        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
-                        shape = RoundedCornerShape(20.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x0FFFFFFF)),
+                        border = BorderStroke(1.dp, Color(0x12FFFFFF)),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(text = "✏️ RENAME", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
@@ -228,11 +233,11 @@ fun PlaylistDetailScreen(
                     Button(
                         onClick = { showDeleteConfirmDialog = true },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x1AFFFFFF)),
-                        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
-                        shape = RoundedCornerShape(20.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x0FFFFFFF)),
+                        border = BorderStroke(1.dp, Color(0x12FFFFFF)),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(text = "🗑 DELETE", color = Color(0xFFE53935), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text(text = "🗑 DELETE", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
 

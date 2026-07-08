@@ -61,17 +61,14 @@ fun MiniPlayerPlaceholder(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xF60F0505)) // rgba(15,5,5,0.97)
+            .background(Color(0xF2121214)) // Translucent premium dark background
     ) {
-        HorizontalDivider(color = Color(0xFF2A1010), thickness = 1.dp) // border-top: 1px solid #2a1010
-        Spacer(modifier = Modifier.height(6.dp)) // 6-8dp top padding above the progress indicator
-
-        // 1. Interactive Thin Red Progress Bar (visually 2dp-4dp, with seek gestures)
+        // 1. Sleek, ultra-thin Progress Bar (2dp height, sits perfectly at the very top edge)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp) // visual height
-                .background(Color(0xFF2A1010)) // track background
+                .height(2.dp)
+                .background(Color(0x1FFFFFFF)) // Subtle track background
                 .onGloballyPositioned { width = it.size.width }
                 .pointerInput(durationMs) {
                     detectTapGestures { offset ->
@@ -86,33 +83,34 @@ fun MiniPlayerPlaceholder(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(progressPct.coerceIn(0f, 1f))
-                    .background(Color(0xFFE53935)) // active progress track
+                    .background(Color(0xFFF9423A)) // Musyfy Brand Red progress
             )
         }
 
-        // 2. Playback Info & Controls Row (exactly matches original proportions)
+        // 2. Playback Info & Controls Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onExpandClick() }
-                .padding(horizontal = 16.dp, vertical = 10.dp), // Revert to exact legacy padding
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Thumbnail artwork container (44dp exactly, supports remote & local sources)
+            // More rounded premium artwork container (48dp)
             AsyncImage(
                 model = imageUrl ?: R.drawable.logo,
                 contentDescription = "Song Artwork Thumbnail",
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF1A1A1A)),
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF1E1E20))
+                    .border(0.5.dp, Color(0x1AFFFFFF), RoundedCornerShape(10.dp)),
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(id = R.drawable.logo),
                 error = painterResource(id = R.drawable.logo)
             )
 
-            // Song Info metadata
+            // Song Info metadata with clean premium typography
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -120,31 +118,32 @@ fun MiniPlayerPlaceholder(
                     text = songTitle,
                     color = Color.White,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = artistName.ifEmpty { "Unknown Artist" },
-                        color = Color(0xFF666666),
+                        color = Color(0xFFB3B3B3),
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "✓",
-                        color = Color(0xFF1DB954),
+                        color = Color(0xFFF9423A), // Brand color accent
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                     if (songTitle != "No Song Playing" && songTitle.isNotEmpty()) {
                         Text(
                             text = " • $currentTimeText / $durationText",
-                            color = Color(0xFF888888),
+                            color = Color(0xFF8E8E93),
                             fontSize = 11.sp,
                             maxLines = 1
                         )
@@ -152,15 +151,15 @@ fun MiniPlayerPlaceholder(
                 }
             }
 
-            // Controls Buttons Layout (Revert to exact legacy gap 12dp)
+            // Controls Buttons Layout (Spotify-style aligned and padded)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // Download button (⬇)
                 Text(
                     text = "⬇",
-                    color = Color(0xFFE53935),
+                    color = Color(0xFFF9423A),
                     fontSize = 18.sp,
                     modifier = Modifier
                         .clickable { }
@@ -170,17 +169,17 @@ fun MiniPlayerPlaceholder(
                 // Prev button (⏮)
                 Text(
                     text = "⏮",
-                    color = Color(0xFFAAAAAA),
-                    fontSize = 22.sp,
+                    color = Color(0xFFB3B3B3),
+                    fontSize = 20.sp,
                     modifier = Modifier.clickable { onPrevClick() }
                 )
 
-                // Play/Pause button (38dp exactly)
+                // Play/Pause button (40dp size with gorgeous premium brand gradient)
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(40.dp)
                         .background(
-                            Brush.linearGradient(listOf(Color(0xFFE53935), Color(0xFFC62828))),
+                            Brush.linearGradient(listOf(Color(0xFFF9423A), Color(0xFFD32F2F))),
                             CircleShape
                         )
                         .clickable { onPlayPauseClick() },
@@ -190,15 +189,16 @@ fun MiniPlayerPlaceholder(
                         text = if (isPlaying) "⏸" else "▶",
                         color = Color.White,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = if (isPlaying) 0.dp else 2.dp)
                     )
                 }
 
                 // Next button (⏭)
                 Text(
                     text = "⏭",
-                    color = Color(0xFFAAAAAA),
-                    fontSize = 22.sp,
+                    color = Color(0xFFB3B3B3),
+                    fontSize = 20.sp,
                     modifier = Modifier.clickable { onNextClick() }
                 )
             }

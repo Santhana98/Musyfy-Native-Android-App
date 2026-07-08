@@ -91,22 +91,24 @@ fun SearchScreen(
                     .fillMaxWidth()
                     .height(230.dp)
             ) {
+                // Theme Background Image with per-theme alignment and premium scaling
                 Image(
                     painter = painterResource(id = bgImageRes),
                     contentDescription = "Theme Background",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
                 )
 
-                // Hero Linear Gradient Overlay matching search/page.tsx
+                // Hero Linear Gradient Overlay (softened overlay for better background pop while maintaining text contrast)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color(0x4D000000), // rgba(0,0,0,0.3)
-                                    Color(0xD90A0A0A), // rgba(10,10,10,0.85)
+                                    Color(0x80000000), // Softened 50% opacity black at the top
+                                    Color(0xE6070708), // Softened 90% opacity transition
                                     Color(0xFF070708)  // Base dark background
                                 )
                             )
@@ -117,31 +119,36 @@ fun SearchScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .statusBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 24.dp, vertical = 20.dp), // More spacious padding
+                    verticalArrangement = Arrangement.spacedBy(20.dp) // Proper spacing instead of spacer
                 ) {
                     // Header Logo + Title
-                    Column {
+                    Column(
+                        modifier = Modifier.padding(top = 10.dp)
+                    ) {
                         Text(
                             text = "Search",
                             color = Color.White,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Black
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.5).sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Search your personal music library",
-                            color = Color(0xFF666666),
+                            color = Color(0xFF9E9E9E), // Higher contrast gray
                             fontSize = 13.sp
                         )
                     }
 
-                    // Input search box
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Polished Spotify/Nothing OS-style capsule search field (shorter, glassmorphic)
                     OutlinedTextField(
                         value = query,
                         onValueChange = { query = it },
-                        placeholder = { Text("Search by song name or artist...", color = Color(0x8CFFFFFF)) },
-                        leadingIcon = { Text("🔍", fontSize = 16.sp, modifier = Modifier.padding(start = 8.dp)) },
+                        placeholder = { Text("Search by song name or artist...", color = Color(0x66FFFFFF)) },
+                        leadingIcon = { Text("🔍", fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp)) },
                         trailingIcon = {
                             if (query.isNotEmpty()) {
                                 Text(
@@ -150,19 +157,20 @@ fun SearchScreen(
                                     fontSize = 14.sp,
                                     modifier = Modifier
                                         .clickable { query = "" }
-                                        .padding(8.dp)
+                                        .padding(12.dp)
                                 )
                             }
                         },
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .height(48.dp),
                         singleLine = true,
-                        shape = RoundedCornerShape(28.dp),
+                        shape = RoundedCornerShape(12.dp), // Premium Material 3/Nothing OS corner radius
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0x11FFFFFF),
-                            unfocusedContainerColor = Color(0x0AFFFFFF),
-                            focusedBorderColor = Color(0xFFE53935),
-                            unfocusedBorderColor = Color(0x1AFFFFFF),
+                            focusedContainerColor = Color(0x1AFFFFFF), // Glass transparency
+                            unfocusedContainerColor = Color(0x0FFFFFFF),
+                            focusedBorderColor = Color(0x4DF9423A), // Subtle brand halo border
+                            unfocusedBorderColor = Color(0x10FFFFFF),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         )

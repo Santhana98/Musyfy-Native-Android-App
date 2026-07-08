@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -78,15 +80,16 @@ fun LikedScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Linear Gradient Overlay mimicking globals.css
+        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0x8C000000), // rgba(0,0,0,0.55)
-                            Color(0xF20A0A0A)  // rgba(10,10,10,0.95)
+                            Color(0xAA000000), // 66% opacity black at the top
+                            Color(0xFB070708), // 98% opacity of base color
+                            Color(0xFF070708)  // Solid base color
                         )
                     )
                 )
@@ -128,7 +131,7 @@ fun LikedScreen(
                 ) {
                     Text(
                         text = "Add 📚",
-                        color = Color(0xFFE53935),
+                        color = Color(0xFFF9423A),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -156,7 +159,7 @@ fun LikedScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp) // Premium 24dp horizontal margins
         ) {
             Spacer(modifier = Modifier.height(76.dp)) // Offset for Top App Bar
 
@@ -164,7 +167,7 @@ fun LikedScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -173,20 +176,22 @@ fun LikedScreen(
                         text = "Your Library",
                         color = Color.White,
                         fontSize = 28.sp,
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.5).sp
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${filteredSongs.size} songs",
-                        color = Color(0xFF888888),
+                        color = Color(0xFF9E9E9E), // Lower opacity count
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Normal
                     )
                 }
 
                 // Sort Options Trigger Button
                 Box {
                     IconButton(onClick = { showSortMenu = true }) {
-                        Text(text = "sort ↕", color = Color(0xFFE53935), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Sort ↕", color = Color(0xFFF9423A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                     DropdownMenu(
                         expanded = showSortMenu,

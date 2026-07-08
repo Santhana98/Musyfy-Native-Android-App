@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.R
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
+
 @Composable
 fun MusyfyTopBar(
     userName: String,
@@ -40,50 +47,51 @@ fun MusyfyTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 16.dp),
+            .height(76.dp)
+            .padding(top = 18.dp, start = 24.dp, end = 20.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: App Logo + App Name
+        // Left: App Logo + App Name (centered & aligned)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Musy-Fi Logo",
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "Musyfy",
                 color = Color(0xFFF9423A),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Serif
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Default,
+                letterSpacing = 1.2.sp
             )
         }
 
-        // Right: User Profile Pill
+        // Right: User Profile Pill (soft glassmorphism)
         Row(
             modifier = Modifier
-                .background(Color(0x1AFFFFFF), RoundedCornerShape(20.dp))
-                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(20.dp))
+                .background(Color(0x0CFFFFFF), RoundedCornerShape(24.dp))
+                .border(1.dp, Color(0x15FFFFFF), RoundedCornerShape(24.dp))
                 .clickable { onProfileClick() }
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(text = "👤", fontSize = 12.sp)
+            Text(text = "👤", fontSize = 13.sp)
             Text(
-                text = "$userName ⌃",
+                text = "$userName ▾",
                 color = Color.White,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.3.sp
             )
         }
     }
@@ -106,24 +114,40 @@ fun MusyfyBottomNavigationBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFA0A0505)) // rgba(10, 5, 5, 0.98)
+            .background(Color(0xEE08080A)) // Translucent premium dark background
     ) {
-        HorizontalDivider(color = Color(0xFF1A1A1A), thickness = 1.dp) // 1px solid #1a1a1a
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(Color(0x1FFFFFFF)) // Ultra soft divider
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(55.dp),
+                .height(68.dp)
+                .padding(bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEach { tab ->
                 val isActive = activeTab == tab.id
-                val tabColor = if (isActive) Color(0xFFF9423A) else Color(0xFF555555)
+                val tabColor by animateColorAsState(
+                    targetValue = if (isActive) Color(0xFFF9423A) else Color(0x7AFFFFFF),
+                    animationSpec = tween(durationMillis = 200),
+                    label = "tabColor"
+                )
+                val scaleFactor by animateFloatAsState(
+                    targetValue = if (isActive) 1.08f else 1f,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "tabScale"
+                )
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable { onTabSelected(tab.id) },
+                        .clickable { onTabSelected(tab.id) }
+                        .scale(scaleFactor),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -132,12 +156,12 @@ fun MusyfyBottomNavigationBar(
                         fontSize = 18.sp,
                         color = tabColor
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = tab.label.uppercase(),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
+                        text = tab.label,
+                        fontSize = 10.sp,
+                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                        letterSpacing = 0.2.sp,
                         color = tabColor
                     )
                 }
