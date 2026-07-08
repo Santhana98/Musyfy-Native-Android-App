@@ -58,7 +58,7 @@ fun MusyfyTopBar(
                 contentScale = ContentScale.Crop
             )
             Text(
-                text = "Musy-Fi",
+                text = "Musyfy",
                 color = Color(0xFFE53935),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,

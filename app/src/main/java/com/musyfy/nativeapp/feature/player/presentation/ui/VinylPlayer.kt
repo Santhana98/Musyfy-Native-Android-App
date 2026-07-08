@@ -279,7 +279,8 @@ fun VinylPlayer(
             colorsPool = extractedColors,
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxSize()
+                .height(140.dp)
+                .align(Alignment.TopCenter)
         )
     }
 }

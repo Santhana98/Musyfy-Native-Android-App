@@ -35,14 +35,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
-import com.musyfy.nativeapp.domain.model.Playlist
 import com.musyfy.nativeapp.domain.model.Song
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
@@ -90,7 +89,7 @@ fun SearchScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
+                    .height(230.dp)
             ) {
                 Image(
                     painter = painterResource(id = bgImageRes),
@@ -118,28 +117,22 @@ fun SearchScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .statusBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(horizontal = 20.dp, vertical = 18.dp),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Header Logo + Title
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.logo),
-                            contentDescription = "Musy-Fi Logo",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
+                    Column {
                         Text(
-                            text = "Musy-Fi Search",
-                            color = Color(0xFFE53935),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Serif
+                            text = "Search",
+                            color = Color.White,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Search your personal music library",
+                            color = Color(0xFF666666),
+                            fontSize = 13.sp
                         )
                     }
 
@@ -148,16 +141,28 @@ fun SearchScreen(
                         value = query,
                         onValueChange = { query = it },
                         placeholder = { Text("Search by song name or artist...", color = Color(0x8CFFFFFF)) },
+                        leadingIcon = { Text("🔍", fontSize = 16.sp, modifier = Modifier.padding(start = 8.dp)) },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                Text(
+                                    text = "✕",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier
+                                        .clickable { query = "" }
+                                        .padding(8.dp)
+                                )
+                            }
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                            .fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0x1AFFFFFF),
-                            unfocusedContainerColor = Color(0x1AFFFFFF),
-                            focusedBorderColor = Color(0x4DFFFFFF),
-                            unfocusedBorderColor = Color(0x26FFFFFF),
+                            focusedContainerColor = Color(0x11FFFFFF),
+                            unfocusedContainerColor = Color(0x0AFFFFFF),
+                            focusedBorderColor = Color(0xFFE53935),
+                            unfocusedBorderColor = Color(0x1AFFFFFF),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         )
@@ -172,7 +177,7 @@ fun SearchScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 if (query.trim().isEmpty()) {
-                    // Empty search screen helper
+                    // Premium Empty State Design
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -180,17 +185,42 @@ fun SearchScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Top
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(Color(0x1AE53935), Color(0x05FFFFFF))
+                                    ),
+                                    CircleShape
+                                )
+                                .border(1.dp, Color(0x1AE53935), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "🔍",
+                                fontSize = 38.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
                         Text(
-                            text = "🔍",
-                            fontSize = 42.sp,
-                            color = Color(0xFF555555)
+                            text = "Discover Your Music",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
-                            text = "Search your personal music library above",
-                            color = Color(0xFF555555),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            text = "Search your personal music library by song title or artist to find your favorites.",
+                            color = Color(0xFF666666),
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp),
+                            lineHeight = 18.sp
                         )
                     }
                 } else {

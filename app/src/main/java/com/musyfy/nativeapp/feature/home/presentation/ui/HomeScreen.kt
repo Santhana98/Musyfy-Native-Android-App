@@ -39,6 +39,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -47,12 +49,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
 import com.musyfy.nativeapp.domain.model.Song
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.shadow
 
 @Composable
 fun HomeScreen(
@@ -60,10 +64,10 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    scrollState: LazyListState = rememberLazyListState()
 ) {
     var activeTab by remember { mutableStateOf("all") }
-    val scrollState = rememberScrollState()
 
     val themeState by authViewModel.theme.collectAsState()
     val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
@@ -184,254 +188,299 @@ fun HomeScreen(
                 }
             }
 
-            // Scrollable Home Feed content (scrolled beneath the fixed "+" button)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+            // Scrollable Home Feed content using LazyColumn with shared LazyListState
+            LazyColumn(
+                state = scrollState,
+                modifier = Modifier.fillMaxSize()
             ) {
-                Spacer(modifier = Modifier.height(56.dp)) // Offset to prevent top bar overlap when unscrolled
-                
-                // Welcome Text header section
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Welcome back",
-                        color = Color.White,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    // Now playing preview pill chip
-                    val currentSong = uiState.currentSong
-                    if (currentSong != null) {
-                        Row(
-                            modifier = Modifier
-                                .background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
-                                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
-                                .clickable { }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                item {
+                    Spacer(modifier = Modifier.height(76.dp)) // Offset to prevent top bar overlap when unscrolled
+                }
+
+                // Welcome Text header section (mockup layout: text left, earbuds + upload button right)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = if (uiState.isPlaying) "🔊" else "🎵", fontSize = 18.sp)
                             Text(
-                                text = "${currentSong.title} - ${currentSong.artist ?: "Unknown"}",
+                                text = "Welcome back to\nthe Music Club",
                                 color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontFamily = FontFamily.SansSerif,
+                                letterSpacing = (-0.15).sp,
+                                lineHeight = 28.sp,
+                                modifier = Modifier.padding(top = 10.dp)
                             )
                         }
-                    } else {
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 4.dp, end = 4.dp)
+                        ) {
+                            // Earbuds illustration image (transparent, cropped to bounding box)
+                            Image(
+                                painter = painterResource(id = R.drawable.earbuds),
+                                contentDescription = "Premium Earbuds Illustration",
+                                modifier = Modifier
+                                    .width(80.dp)
+                                    .height(53.dp)
+                                    .padding(top = 2.dp, end = 2.dp),
+                                contentScale = ContentScale.Fit
+                            )
+
+                            // Upload Button (+)
+                            Box(
+                                modifier = Modifier
+                                    .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                                    .size(38.dp)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(Color(0xFFE53935), Color(0xFFB71C1C))
+                                        ),
+                                        CircleShape
+                                    )
+                                    .border(1.dp, Color(0x33FFFFFF), CircleShape)
+                                    .clickable { onNavigateToUpload() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+",
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Now playing preview bar spanning full available width below the Welcome section
+                item {
+                    val currentSong = uiState.currentSong
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
                         Row(
                             modifier = Modifier
-                                .background(Color(0x1AFFFFFF), RoundedCornerShape(10.dp))
-                                .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(10.dp))
+                                .fillMaxWidth()
+                                .background(Color(0x1F000000), RoundedCornerShape(12.dp))
+                                .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(12.dp))
                                 .clickable { }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(text = "🎵", fontSize = 18.sp)
                             Text(
-                                text = "Select a song to play",
+                                text = if (currentSong != null && uiState.isPlaying) "🔊" else "🎵", 
+                                fontSize = 15.sp,
+                                color = Color(0xCCFFFFFF)
+                            )
+                            Text(
+                                text = if (currentSong != null) {
+                                    "${currentSong.title} - ${currentSong.artist ?: "Unknown"}"
+                                } else {
+                                    "Select a song to play"
+                                },
                                 color = Color.White,
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 // Tabs selection row
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    val tabs = listOf(
-                        Triple("all", "🎵 All", "all"),
-                        Triple("liked", "❤️ Liked", "liked"),
-                        Triple("recent", "🕐 Recent", "recent")
-                    )
-                    tabs.forEach { (id, label, _) ->
-                        val isActive = activeTab == id
-                        val bg = if (isActive) Color(0xFFE53935) else Color(0x0DFFFFFF)
-                        val border = if (isActive) Color.Transparent else Color(0xFF2A2A2A)
-                        val textCol = if (isActive) Color.White else Color(0xFF888888)
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    ) {
+                        val tabs = listOf(
+                            Triple("all", "🎵 All", "all"),
+                            Triple("liked", "❤️ Liked", "liked"),
+                            Triple("recent", "🕐 Recent", "recent")
+                        )
+                        tabs.forEach { (id, label, _) ->
+                            val isActive = activeTab == id
+                            val bg = if (isActive) Color(0xFF8C1D1D) else Color(0x0DFFFFFF)
+                            val borderColor = if (isActive) Color.Transparent else Color(0xFF2A2A2A)
+                            val textCol = if (isActive) Color.White else Color(0xFF888888)
 
-                        Box(
-                            modifier = Modifier
-                                .background(bg, RoundedCornerShape(20.dp))
-                                .border(1.dp, border, RoundedCornerShape(20.dp))
-                                .clickable { activeTab = id }
-                                .padding(horizontal = 16.dp, vertical = 7.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                color = textCol,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .background(bg, RoundedCornerShape(20.dp))
+                                    .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                                    .clickable { activeTab = id }
+                                    .padding(horizontal = 16.dp, vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = textCol,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
 
                 // Your Music Library header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Your Music Library",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "${filteredSongs.size} songs",
-                        color = Color(0xFF555555),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Song items
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    filteredSongs.forEach { song ->
-                        val status = downloadStatuses[song.id] ?: DownloadStatus.NotDownloaded
-                        com.musyfy.nativeapp.feature.home.presentation.ui.SwipeToRevealSongRow(
-                            song = song,
-                            downloadStatus = status,
-                            isActive = uiState.currentSong?.id == song.id,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = selectedSongs.contains(song.id),
-                            onClick = {
-                                if (isSelectionMode) {
-                                    selectedSongs = if (selectedSongs.contains(song.id)) {
-                                        selectedSongs - song.id
-                                    } else {
-                                        selectedSongs + song.id
-                                    }
-                                } else {
-                                    viewModel.playSong(song)
-                                }
-                            },
-                            onLongClick = {
-                                if (!isSelectionMode) {
-                                    isSelectionMode = true
-                                    selectedSongs = setOf(song.id)
-                                }
-                            },
-                            onDownloadClick = {
-                                if (status is DownloadStatus.Downloaded) {
-                                    viewModel.deleteDownloadedSong(song.id)
-                                } else if (status !is DownloadStatus.Downloading) {
-                                    viewModel.startDownload(song)
-                                }
-                            },
-                            onOptionClick = {
-                                songOptionsTarget = song
-                            },
-                            onPlayNext = {
-                                viewModel.playNext(song)
-                            },
-                            onAddToPlaylist = {
-                                showAddToPlaylistDialog = song.id
-                            },
-                            onDelete = {
-                                showDeleteConfirmationForSong = song
-                            }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Playlists Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                item {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "📚", fontSize = 18.sp)
                         Text(
-                            text = "Your Playlists",
+                            text = "Your Music Library",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${filteredSongs.size} songs",
+                            color = Color(0xFF555555),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-                    Text(
-                        text = "+",
-                        color = Color(0xFFE53935),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier
-                            .clickable { showCreatePlaylistDialog = true }
-                            .padding(horizontal = 8.dp)
+                }
+
+                // Song items
+                items(filteredSongs) { song ->
+                    val status = downloadStatuses[song.id] ?: DownloadStatus.NotDownloaded
+                    SwipeToRevealSongRow(
+                        song = song,
+                        downloadStatus = status,
+                        isActive = uiState.currentSong?.id == song.id,
+                        isSelectionMode = isSelectionMode,
+                        isSelected = selectedSongs.contains(song.id),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                        onClick = {
+                            if (isSelectionMode) {
+                                selectedSongs = if (selectedSongs.contains(song.id)) {
+                                    selectedSongs - song.id
+                                } else {
+                                    selectedSongs + song.id
+                                }
+                            } else {
+                                viewModel.playSong(song)
+                            }
+                        },
+                        onLongClick = {
+                            if (!isSelectionMode) {
+                                isSelectionMode = true
+                                selectedSongs = setOf(song.id)
+                            }
+                        },
+                        onDownloadClick = {
+                            if (status is DownloadStatus.Downloaded) {
+                                viewModel.deleteDownloadedSong(song.id)
+                            } else if (status !is DownloadStatus.Downloading) {
+                                viewModel.startDownload(song)
+                            }
+                        },
+                        onOptionClick = {
+                            songOptionsTarget = song
+                        },
+                        onPlayNext = {
+                            viewModel.playNext(song)
+                        },
+                        onAddToPlaylist = {
+                            showAddToPlaylistDialog = song.id
+                        },
+                        onDelete = {
+                            showDeleteConfirmationForSong = song
+                        }
                     )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(28.dp))
+                }
+
+                // Playlists Header
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(text = "📚", fontSize = 18.sp)
+                            Text(
+                                text = "Your Playlists",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                        Text(
+                            text = "+",
+                            color = Color(0xFFE53935),
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier
+                                .clickable { showCreatePlaylistDialog = true }
+                                .padding(horizontal = 8.dp)
+                        )
+                    }
                 }
 
                 // Playlist items
                 if (playlists.isEmpty()) {
-                    Text(
-                        text = "No playlists created yet. Click '+' to make one!",
-                        color = Color(0xFF555555),
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    item {
+                        Text(
+                            text = "No playlists created yet. Click '+' to make one!",
+                            color = Color(0xFF555555),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 } else {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        playlists.forEach { playlist ->
-                            LegacyPlaylistRow(
-                                playlist = playlist,
-                                onClick = { selectedPlaylistId = playlist.id }
-                            )
-                        }
+                    items(playlists) { playlist ->
+                        LegacyPlaylistRow(
+                            playlist = playlist,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            onClick = { selectedPlaylistId = playlist.id }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(100.dp)) // Padding for MiniPlayer dock
-            }
-
-            // 4. Fixed + (Add to Library) Button at top-right aligned with "Welcome back" text (accounting for Top App Bar)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 80.dp, end = 20.dp) // Repositioned to 80dp top padding to align with "Welcome back"
-                    .size(42.dp)
-                    .background(Color(0xFFE53935), CircleShape)
-                    .clickable { onNavigateToUpload() },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "+",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                item {
+                    Spacer(modifier = Modifier.height(100.dp)) // Padding for MiniPlayer dock
+                }
             }
         }
     }
