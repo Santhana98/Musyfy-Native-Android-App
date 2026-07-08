@@ -155,6 +155,13 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun toggleLikeSong(song: Song) {
+        viewModelScope.launch {
+            val updated = song.copy(liked = !song.liked)
+            songRepository.addSong(updated)
+        }
+    }
+
     // YouTube Import Pipeline
     fun importYoutubeSong(url: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {

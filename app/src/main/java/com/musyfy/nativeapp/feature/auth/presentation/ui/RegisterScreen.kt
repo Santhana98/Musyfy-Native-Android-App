@@ -44,15 +44,22 @@ import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
 
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthUiState
+
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -135,7 +142,10 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = name,
-                            onValueChange = { name = it },
+                            onValueChange = { 
+                                name = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "Your name",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                             leadingIcon = {
@@ -161,7 +171,10 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = { 
+                                email = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "you@example.com",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             leadingIcon = {
@@ -187,7 +200,10 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = { 
+                                password = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "••••••••",
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -202,11 +218,24 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    if (uiState is AuthUiState.Error) {
+                        Text(
+                            text = (uiState as AuthUiState.Error).message,
+                            color = Color(0xFFE53935),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                     // Action Button (Simulated Registration)
                     AuthButton(
-                        text = "Create Account",
-                        onClick = onRegisterSuccess,
-                        enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()
+                        text = if (uiState is AuthUiState.Loading) "Creating Account..." else "Create Account",
+                        onClick = {
+                            viewModel.register(name, email, password, onRegisterSuccess)
+                        },
+                        enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && uiState !is AuthUiState.Loading
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))

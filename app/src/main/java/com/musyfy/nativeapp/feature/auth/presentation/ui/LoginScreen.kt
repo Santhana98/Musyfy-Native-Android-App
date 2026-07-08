@@ -46,15 +46,22 @@ import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
 
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthUiState
+
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -137,7 +144,10 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = { 
+                                email = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "you@example.com",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             leadingIcon = {
@@ -170,13 +180,19 @@ fun LoginScreen(
                                 color = Color(0xFFE53935),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable { onNavigateToForgotPassword() }
+                                modifier = Modifier.clickable { 
+                                    viewModel.clearError()
+                                    onNavigateToForgotPassword() 
+                                }
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = { 
+                                password = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "••••••••",
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -191,11 +207,24 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    if (uiState is AuthUiState.Error) {
+                        Text(
+                            text = (uiState as AuthUiState.Error).message,
+                            color = Color(0xFFE53935),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                     // Action Button (Simulated Login)
                     AuthButton(
-                        text = "Sign In →",
-                        onClick = onLoginSuccess,
-                        enabled = email.isNotEmpty() && password.isNotEmpty()
+                        text = if (uiState is AuthUiState.Loading) "Signing In..." else "Sign In →",
+                        onClick = {
+                            viewModel.login(email, password, onLoginSuccess)
+                        },
+                        enabled = email.isNotEmpty() && password.isNotEmpty() && uiState !is AuthUiState.Loading
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))

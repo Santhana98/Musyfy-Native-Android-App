@@ -32,6 +32,8 @@ import com.musyfy.nativeapp.R
 
 @Composable
 fun MusyfyTopBar(
+    userName: String,
+    onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -69,14 +71,14 @@ fun MusyfyTopBar(
             modifier = Modifier
                 .background(Color(0x1AFFFFFF), RoundedCornerShape(20.dp))
                 .border(1.dp, Color(0x26FFFFFF), RoundedCornerShape(20.dp))
-                .clickable { }
+                .clickable { onProfileClick() }
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(text = "👤", fontSize = 12.sp)
             Text(
-                text = "Test ⌃",
+                text = "$userName ⌃",
                 color = Color.White,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold

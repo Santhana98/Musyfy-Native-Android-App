@@ -23,9 +23,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import androidx.compose.foundation.layout.Column
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 
 @Composable
 fun MainScreen(
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
@@ -125,12 +127,19 @@ fun MainScreen(
                         viewModel = viewModel,
                         onNavigateToHome = { activeTab = "home" }
                     )
-                    "settings" -> SettingsScreen()
+                    "settings" -> SettingsScreen(onLogout = onLogout)
                 }
             }
 
             // Floating Top App Bar transparently overlaying the screen background
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val localAuthState by authViewModel.authState.collectAsState()
+
             MusyfyTopBar(
+                userName = localAuthState.userName ?: "User",
+                onProfileClick = {
+                    authViewModel.logout(onLogout)
+                },
                 modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
             )
 

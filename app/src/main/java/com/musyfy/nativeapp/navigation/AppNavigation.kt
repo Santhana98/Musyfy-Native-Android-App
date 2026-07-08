@@ -31,8 +31,9 @@ fun AppNavigation(
     ) {
         composable(route = Screen.Splash.route) {
             SplashScreen(
-                onSplashComplete = {
-                    navController.navigate(Screen.Login.route) {
+                onSplashComplete = { isLoggedIn ->
+                    val destination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
+                    navController.navigate(destination) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -73,7 +74,13 @@ fun AppNavigation(
             )
         }
         composable(route = Screen.Home.route) {
-            MainScreen()
+            MainScreen(
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

@@ -29,14 +29,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.R
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
-    onSplashComplete: () -> Unit,
-    modifier: Modifier = Modifier
+    onSplashComplete: (isLoggedIn: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     val alphaAnim = remember { Animatable(0f) }
+    val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(key1 = Unit) {
         // Run fade-in animation
@@ -46,7 +52,7 @@ fun SplashScreen(
         )
         // Delay to complete the total 1.5s splash
         delay(500L)
-        onSplashComplete()
+        onSplashComplete(authState.isLoggedIn)
     }
 
     Box(

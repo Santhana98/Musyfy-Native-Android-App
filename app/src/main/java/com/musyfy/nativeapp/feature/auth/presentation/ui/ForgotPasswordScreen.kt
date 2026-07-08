@@ -42,14 +42,21 @@ import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
 
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
+import com.musyfy.nativeapp.feature.auth.presentation.AuthUiState
+
 @Composable
 fun ForgotPasswordScreen(
     onNavigateBackToLogin: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     // Glow background brush for top-left (red) and bottom-right (indigo)
     val glowBrush = Brush.verticalGradient(
@@ -162,7 +169,10 @@ fun ForgotPasswordScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = { 
+                                email = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "you@example.com",
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             leadingIcon = {
@@ -188,7 +198,10 @@ fun ForgotPasswordScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = { 
+                                password = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "At least 8 characters",
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -215,7 +228,10 @@ fun ForgotPasswordScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         AuthTextField(
                             value = confirmPassword,
-                            onValueChange = { confirmPassword = it },
+                            onValueChange = { 
+                                confirmPassword = it 
+                                viewModel.clearError()
+                            },
                             placeholder = "••••••••",
                             visualTransformation = PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -230,11 +246,32 @@ fun ForgotPasswordScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    val errorMsg = when {
+                        uiState is AuthUiState.Error -> (uiState as AuthUiState.Error).message
+                        password != confirmPassword && confirmPassword.isNotEmpty() -> "Passwords do not match"
+                        else -> null
+                    }
+
+                    if (errorMsg != null) {
+                        Text(
+                            text = errorMsg,
+                            color = Color(0xFFE53935),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+
                     // Action Button (Simulated Reset)
                     AuthButton(
-                        text = "Reset Password →",
-                        onClick = onNavigateBackToLogin,
-                        enabled = email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()
+                        text = if (uiState is AuthUiState.Loading) "Resetting..." else "Reset Password →",
+                        onClick = {
+                            if (password == confirmPassword) {
+                                viewModel.resetPassword(email, password, onNavigateBackToLogin)
+                            }
+                        },
+                        enabled = email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty() && password == confirmPassword && uiState !is AuthUiState.Loading
                     )
                 }
             }

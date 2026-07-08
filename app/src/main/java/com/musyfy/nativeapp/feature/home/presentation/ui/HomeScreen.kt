@@ -32,6 +32,7 @@ import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.ui.PlaylistDetailScreen
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -58,10 +59,14 @@ fun HomeScreen(
     onNavigateToUpload: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel()
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var activeTab by remember { mutableStateOf("all") }
     val scrollState = rememberScrollState()
+
+    val themeState by authViewModel.theme.collectAsState()
+    val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
 
     val songs by viewModel.songs.collectAsState()
     val uiState by viewModel.playbackUiState.collectAsState()
@@ -99,7 +104,7 @@ fun HomeScreen(
         } else {
             // Theme Background Image
             Image(
-                painter = painterResource(id = R.drawable.bg_male),
+                painter = painterResource(id = bgImageRes),
                 contentDescription = "Theme Background",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
