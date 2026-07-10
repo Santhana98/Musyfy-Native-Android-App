@@ -60,11 +60,10 @@ fun LikedScreen(
     var songOptionsTarget by remember { mutableStateOf<Song?>(null) }
     var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
 
-    // Filter by search query and only show liked or downloaded songs (library subset)
-    val filteredSongs = remember(songs, searchQuery, sortBy, downloadStatuses) {
+    // Filter by search query and strictly show only liked songs (isLiked == true)
+    val filteredSongs = remember(songs, searchQuery, sortBy) {
         songs.filter { song ->
-            val isDownloaded = downloadStatuses[song.id] is DownloadStatus.Downloaded
-            (song.liked || isDownloaded) && (
+            song.liked && (
                 song.title.contains(searchQuery, ignoreCase = true) ||
                 (song.artist?.contains(searchQuery, ignoreCase = true) == true)
             )
@@ -316,8 +315,6 @@ fun LikedScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(100.dp)) // Padding for mini-player overlap
         }
         SnackbarHost(
             hostState = snackbarHostState,

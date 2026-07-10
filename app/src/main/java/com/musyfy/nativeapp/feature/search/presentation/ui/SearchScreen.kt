@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -95,7 +94,6 @@ fun SearchScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .imePadding()
     ) {
         PremiumThemeBackground(themeState = themeState)
 

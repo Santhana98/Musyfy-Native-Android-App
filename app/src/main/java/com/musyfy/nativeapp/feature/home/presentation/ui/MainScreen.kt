@@ -28,6 +28,18 @@ import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
@@ -65,73 +77,82 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             if (!isPlayerExpanded) {
-                Column {
-                    val uiState by viewModel.playbackUiState.collectAsState()
-                    val currentSong = uiState.currentSong
+                val isKeyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+                AnimatedVisibility(
+                    visible = !isKeyboardVisible,
+                    enter = slideInVertically(initialOffsetY = { it }) + expandVertically() + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + shrinkVertically() + fadeOut()
+                ) {
+                    Column {
+                        val uiState by viewModel.playbackUiState.collectAsState()
+                        val currentSong = uiState.currentSong
 
-                    val progressPct = if (uiState.durationMs > 0) {
-                        uiState.currentPositionMs.toFloat() / uiState.durationMs
-                    } else {
-                        0f
-                    }
-
-                    val formatTime: (Long) -> String = { ms ->
-                        val totalSeconds = ms / 1000
-                        val minutes = totalSeconds / 60
-                        val seconds = totalSeconds % 60
-                        "$minutes:${if (seconds < 10) "0" else ""}$seconds"
-                    }
-
-                    val artworkModel = when {
-                        currentSong?.artworkPath != null && java.io.File(currentSong.artworkPath).exists() -> {
-                            android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, artworkPath=${currentSong.artworkPath}, exists=true, loading from local artworkPath")
-                            java.io.File(currentSong.artworkPath)
+                        val progressPct = if (uiState.durationMs > 0) {
+                            uiState.currentPositionMs.toFloat() / uiState.durationMs
+                        } else {
+                            0f
                         }
-                        currentSong?.imageUrl != null -> {
-                            android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, remoteUrl=${currentSong.imageUrl}, loading from remote imageUrl")
-                            currentSong.imageUrl
-                        }
-                        else -> {
-                            android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong?.id}, no artwork available, showing placeholder")
-                            null
-                        }
-                    }
 
-                    MiniPlayerPlaceholder(
-                        songTitle = currentSong?.title ?: "No Song Playing",
-                        artistName = currentSong?.artist.orEmpty(),
-                        isPlaying = uiState.isPlaying,
-                        progressPct = progressPct,
-                        imageUrl = artworkModel,
-                        currentTimeText = formatTime(uiState.currentPositionMs),
-                        durationText = formatTime(uiState.durationMs),
-                        durationMs = uiState.durationMs,
-                        onSeek = { position -> viewModel.seekTo(position) },
-                        onExpandClick = { isPlayerExpanded = true },
-                        onPlayPauseClick = {
-                            if (uiState.isPlaying) {
-                                viewModel.pause()
-                            } else {
-                                if (currentSong == null) {
-                                    val songsList = viewModel.songs.value
-                                    if (songsList.isNotEmpty()) {
-                                        viewModel.playSong(songsList.first())
-                                    }
-                                } else {
-                                    viewModel.play()
-                                }
+                        val formatTime: (Long) -> String = { ms ->
+                            val totalSeconds = ms / 1000
+                            val minutes = totalSeconds / 60
+                            val seconds = totalSeconds % 60
+                            "$minutes:${if (seconds < 10) "0" else ""}$seconds"
+                        }
+
+                        val artworkModel = when {
+                            currentSong?.artworkPath != null && java.io.File(currentSong.artworkPath).exists() -> {
+                                android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, artworkPath=${currentSong.artworkPath}, exists=true, loading from local artworkPath")
+                                java.io.File(currentSong.artworkPath)
                             }
-                        },
-                        onPrevClick = { viewModel.skipToPrevious() },
-                        onNextClick = { viewModel.skipToNext() }
-                    )
-                    MusyfyBottomNavigationBar(
-                        activeTab = activeTab,
-                        onTabSelected = { activeTab = it }
-                    )
+                            currentSong?.imageUrl != null -> {
+                                android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong.id}, remoteUrl=${currentSong.imageUrl}, loading from remote imageUrl")
+                                currentSong.imageUrl
+                            }
+                            else -> {
+                                android.util.Log.d("MusyfyPlayback", "Artwork [MainScreen/MiniPlayer]: song.id=${currentSong?.id}, no artwork available, showing placeholder")
+                                null
+                            }
+                        }
+
+                        MiniPlayerPlaceholder(
+                            songTitle = currentSong?.title ?: "No Song Playing",
+                            artistName = currentSong?.artist.orEmpty(),
+                            isPlaying = uiState.isPlaying,
+                            progressPct = progressPct,
+                            imageUrl = artworkModel,
+                            currentTimeText = formatTime(uiState.currentPositionMs),
+                            durationText = formatTime(uiState.durationMs),
+                            durationMs = uiState.durationMs,
+                            onSeek = { position -> viewModel.seekTo(position) },
+                            onExpandClick = { isPlayerExpanded = true },
+                            onPlayPauseClick = {
+                                if (uiState.isPlaying) {
+                                    viewModel.pause()
+                                } else {
+                                    if (currentSong == null) {
+                                        val songsList = viewModel.songs.value
+                                        if (songsList.isNotEmpty()) {
+                                            viewModel.playSong(songsList.first())
+                                        }
+                                    } else {
+                                        viewModel.play()
+                                    }
+                                }
+                            },
+                            onPrevClick = { viewModel.skipToPrevious() },
+                            onNextClick = { viewModel.skipToNext() }
+                        )
+                        MusyfyBottomNavigationBar(
+                            activeTab = activeTab,
+                            onTabSelected = { activeTab = it },
+                            modifier = Modifier.navigationBarsPadding()
+                        )
+                    }
                 }
             }
         },
+        contentWindowInsets = WindowInsets.safeDrawing,
         modifier = modifier.fillMaxSize(),
         containerColor = Color(0xFF070708) // Base dark background
     ) { innerPadding ->
@@ -144,7 +165,10 @@ fun MainScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = innerPadding.calculateBottomPadding())
+                    .padding(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = innerPadding.calculateBottomPadding()
+                    )
             ) {
                 when (activeTab) {
                     "home" -> HomeScreen(
@@ -174,6 +198,7 @@ fun MainScreen(
                     },
                     modifier = Modifier
                         .align(androidx.compose.ui.Alignment.TopCenter)
+                        .statusBarsPadding()
                         .graphicsLayer {
                             translationY = topBarOffsetPx
                         }
