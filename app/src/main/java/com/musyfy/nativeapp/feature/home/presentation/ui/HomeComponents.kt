@@ -38,8 +38,13 @@ import com.musyfy.nativeapp.domain.model.Song
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import java.io.File
 import kotlin.math.roundToInt
-
-
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 @Composable
 fun LegacyHomeHeader(
@@ -278,63 +283,138 @@ fun SwipeToRevealSongRow(
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onLongClick: () -> Unit = {},
-    onToggleLike: () -> Unit = {}
+    onToggleLike: () -> Unit = {},
+    isRevealed: Boolean = false,
+    onReveal: (Boolean) -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
-    var offsetX by remember { mutableStateOf(0f) }
-    val maxRevealWidth = 160f // Total width of hidden actions
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val maxRevealWidth = with(density) { 180.dp.toPx() }
+    val animatableOffset = remember { Animatable(0f) }
+
+    LaunchedEffect(isSelectionMode, isRevealed) {
+        if (isSelectionMode || !isRevealed) {
+            animatableOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+        } else if (isRevealed && animatableOffset.value == 0f) {
+            animatableOffset.animateTo(-maxRevealWidth, spring(stiffness = Spring.StiffnessMediumLow))
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(12.dp))
     ) {
-        // Revealed Actions (only rendered when swiped to prevent showing through the transparent card)
-        if (offsetX < 0f) {
+        if (animatableOffset.value < 0f) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
+                    .fillMaxWidth()
                     .fillMaxHeight()
-                    .padding(end = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .background(Color(0xD90F0F11), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp)),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onPlayNext()
-                        offsetX = 0f
-                    },
-                    modifier = Modifier.size(40.dp).background(Color(0x1AF9423A), CircleShape)
+                val buttonWidth = 60.dp
+
+                // Action 1: Like / Unlike
+                val likeInteraction = remember { MutableInteractionSource() }
+                val isLikePressed by likeInteraction.collectIsPressedAsState()
+                val isLiked = song.liked
+                val likeIconColor = if (isLikePressed || isLiked) Color(0xFFF9423A) else Color.White
+                Box(
+                    modifier = Modifier
+                        .width(buttonWidth)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = likeInteraction,
+                            indication = null,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onToggleLike()
+                                coroutineScope.launch {
+                                    animatableOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                    onReveal(false)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("⏭️", fontSize = 14.sp)
+                    Text(
+                        text = if (isLiked) "❤️" else "🤍",
+                        fontSize = 18.sp,
+                        color = likeIconColor
+                    )
                 }
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onAddToPlaylist()
-                        offsetX = 0f
-                    },
-                    modifier = Modifier.size(40.dp).background(Color(0x1AF9423A), CircleShape)
+
+                // Action 2: Add to Playlist
+                val addInteraction = remember { MutableInteractionSource() }
+                val isAddPressed by addInteraction.collectIsPressedAsState()
+                val addIconColor = if (isAddPressed) Color(0xFFF9423A) else Color.White
+                Box(
+                    modifier = Modifier
+                        .width(buttonWidth)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = addInteraction,
+                            indication = null,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onAddToPlaylist()
+                                coroutineScope.launch {
+                                    animatableOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                    onReveal(false)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("📚", fontSize = 14.sp)
+                    Text(
+                        text = "➕",
+                        fontSize = 16.sp,
+                        color = addIconColor
+                    )
                 }
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onDelete()
-                        offsetX = 0f
-                    },
-                    modifier = Modifier.size(40.dp).background(Color(0x1AEF5350), CircleShape)
+
+                // Action 3: Delete Download / Delete
+                val deleteInteraction = remember { MutableInteractionSource() }
+                val isDeletePressed by deleteInteraction.collectIsPressedAsState()
+                val deleteIconColor = if (isDeletePressed) Color(0xFFF9423A) else Color.White
+                Box(
+                    modifier = Modifier
+                        .width(buttonWidth)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = deleteInteraction,
+                            indication = null,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onDelete()
+                                coroutineScope.launch {
+                                    animatableOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                                    onReveal(false)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("🗑️", fontSize = 14.sp)
+                    Text(
+                        text = "🗑️",
+                        fontSize = 18.sp,
+                        color = deleteIconColor
+                    )
                 }
             }
         }
 
         val dragState = rememberDraggableState { delta ->
             if (!isSelectionMode) {
-                offsetX = (offsetX + delta).coerceIn(-maxRevealWidth, 0f)
+                coroutineScope.launch {
+                    val newOffset = (animatableOffset.value + delta).coerceIn(-maxRevealWidth, 0f)
+                    animatableOffset.snapTo(newOffset)
+                }
             }
         }
 
@@ -343,8 +423,11 @@ fun SwipeToRevealSongRow(
             downloadStatus = downloadStatus,
             isActive = isActive,
             onClick = {
-                if (offsetX < -10f) {
-                    offsetX = 0f
+                if (animatableOffset.value < -10f) {
+                    coroutineScope.launch {
+                        animatableOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                        onReveal(false)
+                    }
                 } else {
                     onClick()
                 }
@@ -359,13 +442,23 @@ fun SwipeToRevealSongRow(
             },
             onToggleLike = onToggleLike,
             modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .offset { IntOffset(animatableOffset.value.roundToInt(), 0) }
                 .draggable(
                     state = dragState,
                     orientation = Orientation.Horizontal,
                     enabled = !isSelectionMode,
-                    onDragStopped = {
-                        offsetX = if (offsetX < -maxRevealWidth / 2f) -maxRevealWidth else 0f
+                    onDragStopped = { velocity ->
+                        val targetValue = if (animatableOffset.value < -maxRevealWidth / 2f) -maxRevealWidth else 0f
+                        coroutineScope.launch {
+                            animatableOffset.animateTo(
+                                targetValue = targetValue,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                            onReveal(targetValue == -maxRevealWidth)
+                        }
                     }
                 )
         )

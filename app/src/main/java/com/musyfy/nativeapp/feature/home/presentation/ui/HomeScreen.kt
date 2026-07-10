@@ -37,6 +37,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListState
@@ -52,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
 import com.musyfy.nativeapp.domain.model.Song
@@ -71,9 +78,11 @@ fun HomeScreen(
     scrollState: LazyListState = rememberLazyListState()
 ) {
     var activeTab by remember { mutableStateOf("all") }
+    var swipedSongId by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val themeState by authViewModel.theme.collectAsState()
-    val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
 
     val songs by viewModel.songs.collectAsState()
     val uiState by viewModel.playbackUiState.collectAsState()
@@ -109,29 +118,7 @@ fun HomeScreen(
                 playerViewModel = viewModel
             )
         } else {
-            // Theme Background Image with per-theme alignment and premium scaling
-            Image(
-                painter = painterResource(id = bgImageRes),
-                contentDescription = "Theme Background",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
-            )
- 
-            // Linear Gradient Overlay mimicking globals.css (softened overlay for better background pop while maintaining text contrast)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0x80000000), // Softened 50% opacity black at the top
-                                Color(0xE6070708), // Softened 90% opacity transition
-                                Color(0xFF070708)  // Solid base color
-                            )
-                        )
-                    )
-            )
+            PremiumThemeBackground(themeState = themeState)
 
             if (isSelectionMode) {
                 Row(
@@ -384,6 +371,9 @@ fun HomeScreen(
                         isSelectionMode = isSelectionMode,
                         isSelected = selectedSongs.contains(song.id),
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), // Consistent 24dp horizontal padding
+                        onToggleLike = { viewModel.toggleLikeSong(song) },
+                        isRevealed = swipedSongId == song.id,
+                        onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                         onClick = {
                             if (isSelectionMode) {
                                 selectedSongs = if (selectedSongs.contains(song.id)) {
@@ -486,6 +476,12 @@ fun HomeScreen(
                 }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 90.dp)
+        )
     }
 
     // Create Playlist Dialog
@@ -615,12 +611,23 @@ fun HomeScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteSong(targetSong.id)
+                        val deletedSong = targetSong
+                        viewModel.deleteSong(deletedSong.id)
                         showDeleteConfirmationForSong = null
-                        if (isSelectionMode && selectedSongs.contains(targetSong.id)) {
-                            selectedSongs = selectedSongs - targetSong.id
+                        if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
+                            selectedSongs = selectedSongs - deletedSong.id
                             if (selectedSongs.isEmpty()) {
                                 isSelectionMode = false
+                            }
+                        }
+                        coroutineScope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Song deleted",
+                                actionLabel = "UNDO",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.restoreSong(deletedSong)
                             }
                         }
                     }

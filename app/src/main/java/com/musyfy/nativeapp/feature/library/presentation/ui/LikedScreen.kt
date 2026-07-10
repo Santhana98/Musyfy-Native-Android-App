@@ -25,10 +25,13 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
+import kotlinx.coroutines.launch
 import com.musyfy.nativeapp.feature.home.presentation.ui.SwipeToRevealSongRow
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
+import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
+import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import com.musyfy.nativeapp.domain.model.Song
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,14 +39,19 @@ import com.musyfy.nativeapp.domain.model.Song
 fun LikedScreen(
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel()
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var sortBy by remember { mutableStateOf("title") } // "title" or "artist" or "duration"
     var showSortMenu by remember { mutableStateOf(false) }
+    var swipedSongId by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val songs by viewModel.songs.collectAsState()
     val uiState by viewModel.playbackUiState.collectAsState()
+    val themeState by authViewModel.theme.collectAsState()
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
     val playlists by playlistViewModel.playlists.collectAsState()
 
@@ -53,7 +61,7 @@ fun LikedScreen(
     var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
 
     // Filter by search query and only show liked or downloaded songs (library subset)
-    val filteredSongs = remember(songs, searchQuery, sortBy) {
+    val filteredSongs = remember(songs, searchQuery, sortBy, downloadStatuses) {
         songs.filter { song ->
             val isDownloaded = downloadStatuses[song.id] is DownloadStatus.Downloaded
             (song.liked || isDownloaded) && (
@@ -72,28 +80,7 @@ fun LikedScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Theme Background Image
-        Image(
-            painter = painterResource(id = R.drawable.bg_male),
-            contentDescription = "Theme Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xAA000000), // 66% opacity black at the top
-                            Color(0xFB070708), // 98% opacity of base color
-                            Color(0xFF070708)  // Solid base color
-                        )
-                    )
-                )
-        )
+        PremiumThemeBackground(themeState = themeState)
 
         if (isSelectionMode) {
             Row(
@@ -286,6 +273,9 @@ fun LikedScreen(
                             isActive = uiState.currentSong?.id == song.id,
                             isSelectionMode = isSelectionMode,
                             isSelected = selectedSongs.contains(song.id),
+                            onToggleLike = { viewModel.toggleLikeSong(song) },
+                            isRevealed = swipedSongId == song.id,
+                            onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                             onClick = {
                                 if (isSelectionMode) {
                                     selectedSongs = if (selectedSongs.contains(song.id)) {
@@ -329,6 +319,12 @@ fun LikedScreen(
 
             Spacer(modifier = Modifier.height(100.dp)) // Padding for mini-player overlap
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 90.dp)
+        )
     }
 
     // Unified Song Options Bottom Sheet
@@ -366,12 +362,23 @@ fun LikedScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteSong(targetSong.id)
+                        val deletedSong = targetSong
+                        viewModel.deleteSong(deletedSong.id)
                         showDeleteConfirmationForSong = null
-                        if (isSelectionMode && selectedSongs.contains(targetSong.id)) {
-                            selectedSongs = selectedSongs - targetSong.id
+                        if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
+                            selectedSongs = selectedSongs - deletedSong.id
                             if (selectedSongs.isEmpty()) {
                                 isSelectionMode = false
+                            }
+                        }
+                        coroutineScope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Song deleted",
+                                actionLabel = "UNDO",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.restoreSong(deletedSong)
                             }
                         }
                     }

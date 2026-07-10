@@ -14,12 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -37,6 +42,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -59,9 +65,18 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authState by viewModel.authState.collectAsState()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
+
+    // Pre-fill email the next time screen opens if remembered
+    LaunchedEffect(authState.userEmail) {
+        if (authState.userEmail != null && email.isEmpty()) {
+            email = authState.userEmail!!
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -74,185 +89,212 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Dark Overlay (0.35 opacity)
+        // Balanced Dark Gradient Overlay (reduces intensity in the center to show ~65% artwork)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.35f))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xCC000000), // Slightly darker top
+                            Color(0x40000000), // More transparent center (25% opacity)
+                            Color(0xB3000000)  // Slightly darker bottom
+                        )
+                    )
+                )
         )
 
         // Scrollable content wrapper
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 32.dp, horizontal = 16.dp),
+                .padding(vertical = 48.dp, horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            GlassmorphicCard {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Logo
-                    Image(
-                        painter = painterResource(id = R.drawable.logo),
-                        contentDescription = "Musy-Fi Logo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .shadow(elevation = 12.dp, shape = CircleShape)
-                    )
+            // Lightweight container with no borders/backgrounds to let the artwork be the hero
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 340.dp), // slightly reduced width for cleaner layout
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Logo
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Musyfy Logo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .shadow(elevation = 16.dp, shape = CircleShape)
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-                    // Title
+                // Title
+                Text(
+                    text = "Musyfy",
+                    color = Color(0xFFF9423A), // Musyfy red accent
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Serif,
+                    letterSpacing = 1.sp
+                )
+
+                Text(
+                    text = "Log in to continue",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Text(
+                    text = "🎧 Your Music. Your Vibe. 🍁",
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.5.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(36.dp))
+
+                // Email Field
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Musy-Fi",
-                        color = Color(0xFFE53935),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Serif
+                        text = "EMAIL ADDRESS",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 10.sp, // reduced size and weight
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.2.sp,
+                        modifier = Modifier.padding(start = 16.dp) // aligned with rounded border
                     )
-
-                    Text(
-                        text = "Log in to continue",
-                        color = Color(0xFF888888),
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-
-                    Text(
-                        text = "🎧 Your Music. Your Vibe.",
-                        color = Color(0xFF666666),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Email Field
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "EMAIL ADDRESS",
-                            color = Color(0xFF888888),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        AuthTextField(
-                            value = email,
-                            onValueChange = { 
-                                email = it 
-                                viewModel.clearError()
-                            },
-                            placeholder = "you@example.com",
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            leadingIcon = {
-                                Text(
-                                    text = "✉️",
-                                    fontSize = 16.sp
-                                )
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Password Field
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "PASSWORD",
-                                color = Color(0xFF888888),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "Forgot Password?",
-                                color = Color(0xFFE53935),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable { 
-                                    viewModel.clearError()
-                                    onNavigateToForgotPassword() 
-                                }
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        AuthTextField(
-                            value = password,
-                            onValueChange = { 
-                                password = it 
-                                viewModel.clearError()
-                            },
-                            placeholder = "••••••••",
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            leadingIcon = {
-                                Text(
-                                    text = "🔑",
-                                    fontSize = 16.sp
-                                )
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    if (uiState is AuthUiState.Error) {
-                        Text(
-                            text = (uiState as AuthUiState.Error).message,
-                            color = Color(0xFFE53935),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 12.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    // Action Button (Simulated Login)
-                    AuthButton(
-                        text = if (uiState is AuthUiState.Loading) "Signing In..." else "Sign In →",
-                        onClick = {
-                            viewModel.login(email, password, onLoginSuccess)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AuthTextField(
+                        value = email,
+                        onValueChange = { 
+                            email = it 
+                            viewModel.clearError()
                         },
-                        enabled = email.isNotEmpty() && password.isNotEmpty() && uiState !is AuthUiState.Loading
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Bottom navigation link
-                    val signupPrompt = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = Color(0xFF555555))) {
-                            append("Don't have an account? ")
-                        }
-                        withStyle(
-                            style = SpanStyle(
-                                color = Color(0xFFE53935),
-                                fontWeight = FontWeight.Bold
+                        placeholder = "you@example.com",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        leadingIcon = {
+                            Text(
+                                text = "✉️",
+                                fontSize = 16.sp
                             )
-                        ) {
-                            append("Sign Up")
                         }
-                    }
-
-                    Text(
-                        text = signupPrompt,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .clickable { onNavigateToRegister() }
-                            .padding(4.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Password Field
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), // aligned with rounded border
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PASSWORD",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 10.sp, // reduced size and weight
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.2.sp
+                        )
+                        Text(
+                            text = "Forgot Password?",
+                            color = Color(0xFFE53935).copy(alpha = 0.85f),
+                            fontSize = 11.sp, // smaller, cleaner text link
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { 
+                                viewModel.clearError()
+                                onNavigateToForgotPassword() 
+                            }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AuthTextField(
+                        value = password,
+                        onValueChange = { 
+                            password = it 
+                            viewModel.clearError()
+                        },
+                        placeholder = "••••••••",
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        leadingIcon = {
+                            Text(
+                                text = "🔑",
+                                fontSize = 16.sp
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(if (passwordVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off),
+                                contentDescription = "Toggle password visibility",
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .clickable { passwordVisible = !passwordVisible }
+                                    .padding(8.dp)
+                            )
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(36.dp)) // increased spacing before Sign In button
+
+                if (uiState is AuthUiState.Error) {
+                    Text(
+                        text = (uiState as AuthUiState.Error).message,
+                        color = Color(0xFFE53935),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Action Button (Simulated Login)
+                AuthButton(
+                    text = if (uiState is AuthUiState.Loading) "Signing In..." else "Sign In →",
+                    onClick = {
+                        viewModel.login(email, password, onLoginSuccess)
+                    },
+                    enabled = email.isNotEmpty() && password.isNotEmpty() && uiState !is AuthUiState.Loading
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Bottom navigation link
+                val signupPrompt = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color.White.copy(alpha = 0.4f))) {
+                        append("Don't have an account? ")
+                    }
+                    withStyle(
+                        style = SpanStyle(
+                            color = Color(0xFFE53935),
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) {
+                        append("Sign Up")
+                    }
+                }
+
+                Text(
+                    text = signupPrompt,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clickable { onNavigateToRegister() }
+                        .padding(4.dp)
+                )
             }
         }
     }

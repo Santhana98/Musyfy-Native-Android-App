@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.domain.model.Song
+import kotlinx.coroutines.launch
 import com.musyfy.nativeapp.feature.home.presentation.ui.SwipeToRevealSongRow
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
@@ -65,6 +66,9 @@ fun PlaylistDetailScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var songOptionsTarget by remember { mutableStateOf<Song?>(null) }
     var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
+    var swipedSongId by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -317,6 +321,9 @@ fun PlaylistDetailScreen(
                                     isActive = uiState.currentSong?.id == song.id,
                                     isSelectionMode = isSelectionMode,
                                     isSelected = selectedSongs.contains(song.id),
+                                    onToggleLike = { playerViewModel.toggleLikeSong(song) },
+                                    isRevealed = swipedSongId == song.id,
+                                    onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                                     onClick = {
                                         if (isSelectionMode) {
                                             selectedSongs = if (selectedSongs.contains(song.id)) {
@@ -363,6 +370,12 @@ fun PlaylistDetailScreen(
 
             Spacer(modifier = Modifier.height(100.dp)) // Mini Player Padding
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 90.dp)
+        )
     }
 
     // Rename Playlist Dialog
@@ -468,8 +481,19 @@ fun PlaylistDetailScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        playerViewModel.deleteSong(targetSong.id)
+                        val deletedSong = targetSong
+                        playerViewModel.deleteSong(deletedSong.id)
                         showDeleteConfirmationForSong = null
+                        coroutineScope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "Song deleted",
+                                actionLabel = "UNDO",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                playerViewModel.restoreSong(deletedSong)
+                            }
+                        }
                     }
                 ) {
                     Text("DELETE", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)

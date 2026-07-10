@@ -41,58 +41,62 @@ fun SplashScreen(
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val alphaAnim = remember { Animatable(0f) }
+    val logoAlpha = remember { Animatable(0f) }
+    val nameAlpha = remember { Animatable(0f) }
+    val taglineAlpha = remember { Animatable(0f) }
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(key1 = Unit) {
-        // Run fade-in animation
-        alphaAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 1000)
-        )
-        // Delay to complete the total 1.5s splash
-        delay(500L)
+        // Logo fades in over 250ms
+        logoAlpha.animateTo(1f, animationSpec = tween(durationMillis = 250))
+        // App Name fades in over 200ms
+        nameAlpha.animateTo(1f, animationSpec = tween(durationMillis = 200))
+        // Tagline fades in over 200ms
+        taglineAlpha.animateTo(1f, animationSpec = tween(durationMillis = 200))
+        
         onSplashComplete(authState.isLoggedIn)
     }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070708)),
+            .background(Color.Black), // Pure black background (#000000)
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.alpha(alphaAnim.value),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Musy-Fi Logo",
+                contentDescription = "Musyfy Logo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(96.dp)
                     .clip(CircleShape)
-                    .border(2.dp, Color(0xFFE53935), CircleShape)
+                    .border(2.dp, Color.Black, CircleShape)
+                    .alpha(logoAlpha.value)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Musy-Fi",
+                text = "Musyfy",
                 color = Color(0xFFE53935),
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.Serif
+                fontFamily = FontFamily.Serif,
+                modifier = Modifier.alpha(nameAlpha.value)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "🎧 Your Music. Your Vibe.",
+                text = "🎧 Your Music. Your Vibe 🍁.",
                 color = Color(0xFF666666),
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.alpha(taglineAlpha.value)
             )
         }
     }

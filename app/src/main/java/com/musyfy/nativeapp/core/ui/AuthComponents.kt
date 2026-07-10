@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,20 +45,20 @@ fun GlassmorphicCard(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 30.dp,
-                shape = RoundedCornerShape(20.dp),
+                elevation = 24.dp,
+                shape = RoundedCornerShape(22.dp),
                 clip = false
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xEC140808) // rgba(20, 8, 8, 0.92)
+            containerColor = Color(0x61121214) // rgba(18, 18, 20, 0.38) for premium glass transparency
         ),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = SolidColor(Color(0x26E53935)) // 1px solid rgba(229,57,53,0.15)
+            brush = SolidColor(Color(0x26FFFFFF)) // 1px solid rgba(255,255,255,0.15) for frosted glass border
         )
     ) {
         Box(
-            modifier = Modifier.padding(vertical = 40.dp, horizontal = 32.dp)
+            modifier = Modifier.padding(vertical = 36.dp, horizontal = 28.dp)
         ) {
             content()
         }
@@ -88,15 +89,15 @@ fun AuthTextField(
         cursorBrush = SolidColor(Color(0xFFE53935)),
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
-            .background(Color(0xFF0D0505), RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFF2A1010), RoundedCornerShape(10.dp))
-            .clip(RoundedCornerShape(10.dp)),
+            .height(54.dp)
+            .background(Color(0x24FFFFFF), RoundedCornerShape(28.dp)) // soft glass input background with larger corner radius
+            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(28.dp)) // soft border
+            .clip(RoundedCornerShape(28.dp)),
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 20.dp), // increased horizontal padding for rounded ends
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (leadingIcon != null) {
@@ -110,7 +111,7 @@ fun AuthTextField(
                     if (value.isEmpty()) {
                         Text(
                             text = placeholder,
-                            color = Color(0xFF666666),
+                            color = Color(0x80FFFFFF), // soft white hint
                             fontSize = 14.sp
                         )
                     }
@@ -135,22 +136,42 @@ fun AuthButton(
     val gradient = Brush.linearGradient(
         colors = listOf(Color(0xFFE53935), Color(0xFFC62828))
     )
-    Box(
+    Card(
+        shape = RoundedCornerShape(28.dp), // matched pill shape
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent
+        ),
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .background(
-                brush = if (enabled) gradient else SolidColor(Color(0xFF222222)),
-                shape = RoundedCornerShape(12.dp)
+            .height(54.dp)
+            .shadow(
+                elevation = if (enabled) 8.dp else 0.dp,
+                shape = RoundedCornerShape(28.dp),
+                clip = true
             )
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center
+            .background(
+                brush = if (enabled) gradient else SolidColor(Color(0x1DFFFFFF)),
+                shape = RoundedCornerShape(28.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = if (enabled) Color.Transparent else Color(0x14FFFFFF),
+                shape = RoundedCornerShape(28.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick)
     ) {
-        Text(
-            text = text,
-            color = if (enabled) Color.White else Color(0xFF666666),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = if (enabled) Color.White else Color(0x66FFFFFF),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+        }
     }
 }

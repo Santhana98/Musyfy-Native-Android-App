@@ -1,0 +1,52 @@
+package com.musyfy.nativeapp.core.ui.components
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.musyfy.nativeapp.R
+
+@Composable
+fun PremiumThemeBackground(
+    themeState: String,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // Theme Background Image with per-theme alignment and premium scaling
+        Image(
+            painter = painterResource(id = bgImageRes),
+            contentDescription = "Theme Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
+        )
+
+        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x80000000), // Softened 50% opacity black at the top
+                            Color(0xE6070708), // Softened 90% opacity transition
+                            Color(0xFF070708)  // Solid base color
+                        )
+                    )
+                )
+        )
+        content()
+    }
+}

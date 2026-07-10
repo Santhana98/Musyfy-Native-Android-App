@@ -162,6 +162,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun restoreSong(song: Song) {
+        viewModelScope.launch {
+            songRepository.addSong(song)
+        }
+    }
+
     // YouTube Import Pipeline
     fun importYoutubeSong(url: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {

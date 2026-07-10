@@ -66,10 +66,7 @@ class PreferencesManager @Inject constructor(
 
     suspend fun clearAuthState() {
         dataStore.edit { preferences ->
-            preferences.remove(isLoggedInKey)
-            preferences.remove(userNameKey)
-            preferences.remove(userEmailKey)
-            preferences.remove(userPasswordKey)
+            preferences[isLoggedInKey] = false
             preferences.remove(sessionTokenKey)
         }
     }
@@ -85,11 +82,8 @@ class PreferencesManager @Inject constructor(
 
     suspend fun clearSession() {
         dataStore.edit { preferences ->
+            preferences[isLoggedInKey] = false
             preferences.remove(sessionTokenKey)
-            preferences.remove(userEmailKey)
-            preferences.remove(userNameKey)
-            preferences.remove(isLoggedInKey)
-            preferences.remove(userPasswordKey)
         }
     }
 

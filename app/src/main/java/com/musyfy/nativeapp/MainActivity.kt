@@ -17,10 +17,15 @@ import androidx.navigation.compose.rememberNavController
 import com.musyfy.nativeapp.core.ui.theme.MusyfyTheme
 import com.musyfy.nativeapp.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setOnExitAnimationListener { splashScreenView ->
+            splashScreenView.remove()
+        }
         super.onCreate(savedInstanceState)
         
         // Request notifications permission at runtime on Android 13+
@@ -37,7 +42,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        enableEdgeToEdge()
+        // enableEdgeToEdge()
         setContent {
             MusyfyTheme {
                 val navController = rememberNavController()

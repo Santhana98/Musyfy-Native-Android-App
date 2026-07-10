@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
+import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.domain.model.Song
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
@@ -58,7 +68,6 @@ fun SearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val themeState by authViewModel.theme.collectAsState()
-    val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
 
     val songs by viewModel.songs.collectAsState()
     val uiState by viewModel.playbackUiState.collectAsState()
@@ -66,6 +75,10 @@ fun SearchScreen(
     val playlists by playlistViewModel.playlists.collectAsState()
 
     var songOptionsTarget by remember { mutableStateOf<Song?>(null) }
+    var swipedSongId by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
 
     val filteredSongs = remember(query, songs) {
         val trimmed = query.trim()
@@ -82,107 +95,77 @@ fun SearchScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070708))
+            .imePadding()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Hero Header with Theme Background
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(230.dp)
-            ) {
-                // Theme Background Image with per-theme alignment and premium scaling
-                Image(
-                    painter = painterResource(id = bgImageRes),
-                    contentDescription = "Theme Background",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
-                )
+        PremiumThemeBackground(themeState = themeState)
 
-                // Hero Linear Gradient Overlay (softened overlay for better background pop while maintaining text contrast)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0x80000000), // Softened 50% opacity black at the top
-                                    Color(0xE6070708), // Softened 90% opacity transition
-                                    Color(0xFF070708)  // Base dark background
-                                )
-                            )
-                        )
-                )
+        // Content Area matching LikedScreen.kt hierarchy exactly
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+        ) {
+            Spacer(modifier = Modifier.height(76.dp)) // Offset for Top App Bar matching LikedScreen
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(horizontal = 24.dp, vertical = 20.dp), // More spacious padding
-                    verticalArrangement = Arrangement.spacedBy(20.dp) // Proper spacing instead of spacer
-                ) {
-                    // Header Logo + Title
-                    Column(
-                        modifier = Modifier.padding(top = 10.dp)
-                    ) {
+            // Header Title Block
+            Column {
+                Text(
+                    text = "Search",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.5).sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Search your personal music library",
+                    color = Color(0xFF9E9E9E), // Higher contrast gray
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp)) // Spacing matching LikedScreen
+
+            // Polished Spotify/Nothing OS-style capsule search field (shorter, glassmorphic)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search by song name or artist...", color = Color(0x66FFFFFF)) },
+                leadingIcon = { Text("🔍", fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp)) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
                         Text(
-                            text = "Search",
+                            text = "✕",
                             color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Search your personal music library",
-                            color = Color(0xFF9E9E9E), // Higher contrast gray
-                            fontSize = 13.sp
+                            fontSize = 14.sp,
+                            modifier = Modifier
+                                .clickable { query = "" }
+                                .padding(12.dp)
                         )
                     }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp), // Premium Material 3/Nothing OS corner radius
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0x1AFFFFFF), // Glass transparency
+                    unfocusedContainerColor = Color(0x0FFFFFFF),
+                    focusedBorderColor = Color(0x4DF9423A), // Subtle brand halo border
+                    unfocusedBorderColor = Color(0x10FFFFFF),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                )
+            )
 
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Polished Spotify/Nothing OS-style capsule search field (shorter, glassmorphic)
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        placeholder = { Text("Search by song name or artist...", color = Color(0x66FFFFFF)) },
-                        leadingIcon = { Text("🔍", fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp)) },
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                Text(
-                                    text = "✕",
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier
-                                        .clickable { query = "" }
-                                        .padding(12.dp)
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp), // Premium Material 3/Nothing OS corner radius
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0x1AFFFFFF), // Glass transparency
-                            unfocusedContainerColor = Color(0x0FFFFFFF),
-                            focusedBorderColor = Color(0x4DF9423A), // Subtle brand halo border
-                            unfocusedBorderColor = Color(0x10FFFFFF),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        )
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(16.dp)) // Spacing matching LikedScreen
 
             // Results list area
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+                    .weight(1f)
+                    .fillMaxWidth()
             ) {
                 if (query.trim().isEmpty()) {
                     // Premium Empty State Design
@@ -279,11 +262,13 @@ fun SearchScreen(
                                             songOptionsTarget = song
                                         },
                                         onDelete = {
-                                            viewModel.deleteSong(song.id)
+                                            showDeleteConfirmationForSong = song
                                         },
                                         onToggleLike = {
                                             viewModel.toggleLikeSong(song)
-                                        }
+                                        },
+                                        isRevealed = swipedSongId == song.id,
+                                        onReveal = { opened -> swipedSongId = if (opened) song.id else null }
                                     )
                                 }
                             }
@@ -304,8 +289,60 @@ fun SearchScreen(
                 onAddToPlaylist = { playlistId ->
                     playlistViewModel.addSongToPlaylist(playlistId, songOptionsTarget!!.id)
                 },
-                onDeleteFromLibrary = { viewModel.deleteSong(songOptionsTarget!!.id) }
+                onDeleteFromLibrary = {
+                    showDeleteConfirmationForSong = songOptionsTarget
+                    songOptionsTarget = null
+                }
             )
         }
+
+        if (showDeleteConfirmationForSong != null) {
+            val targetSong = showDeleteConfirmationForSong!!
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmationForSong = null },
+                title = { Text("Delete Song from Library?", color = Color.White, fontWeight = FontWeight.Bold) },
+                text = {
+                    Text(
+                        text = "Are you sure you want to remove \"${targetSong.title}\" from your library? This will delete its metadata and downloaded offline files.",
+                        color = Color(0xFF888888),
+                        fontSize = 14.sp
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val deletedSong = targetSong
+                            viewModel.deleteSong(deletedSong.id)
+                            showDeleteConfirmationForSong = null
+                            coroutineScope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Song deleted",
+                                    actionLabel = "UNDO",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.restoreSong(deletedSong)
+                                }
+                            }
+                        }
+                    ) {
+                        Text("DELETE", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmationForSong = null }) {
+                        Text("CANCEL", color = Color.White)
+                    }
+                },
+                containerColor = Color(0xFF141416)
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 90.dp)
+        )
     }
 }
