@@ -58,7 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
 import com.musyfy.nativeapp.domain.model.Song
@@ -118,7 +117,6 @@ fun HomeScreen(
                 playerViewModel = viewModel
             )
         } else {
-            PremiumThemeBackground(themeState = themeState)
 
             if (isSelectionMode) {
                 Row(

@@ -29,7 +29,6 @@ import kotlinx.coroutines.launch
 import com.musyfy.nativeapp.feature.home.presentation.ui.SwipeToRevealSongRow
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
-import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import com.musyfy.nativeapp.domain.model.Song
@@ -79,7 +78,6 @@ fun LikedScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        PremiumThemeBackground(themeState = themeState)
 
         if (isSelectionMode) {
             Row(

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import com.musyfy.nativeapp.core.ui.components.MiniPlayerPlaceholder
 import com.musyfy.nativeapp.core.ui.components.MusyfyBottomNavigationBar
 import com.musyfy.nativeapp.core.ui.components.MusyfyTopBar
+import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.feature.download.presentation.ui.UploadScreen
 import com.musyfy.nativeapp.feature.library.presentation.ui.LikedScreen
 import com.musyfy.nativeapp.feature.search.presentation.ui.SearchScreen
@@ -154,13 +155,15 @@ fun MainScreen(
         },
         contentWindowInsets = WindowInsets.safeDrawing,
         modifier = modifier.fillMaxSize(),
-        containerColor = Color(0xFF070708) // Base dark background
+        containerColor = Color.Transparent // Make Scaffold transparent so the background shows through
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF070708))
+            modifier = Modifier.fillMaxSize()
         ) {
+            // Fixed Background at full size (no padding, completely static during IME changes)
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val themeState by authViewModel.theme.collectAsState()
+            PremiumThemeBackground(themeState = themeState)
             // Screen content area (only padding bottom to prevent overlap with the bottom nav elements)
             Box(
                 modifier = Modifier

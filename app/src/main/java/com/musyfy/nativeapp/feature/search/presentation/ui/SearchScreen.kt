@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
-import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 import com.musyfy.nativeapp.domain.model.Song
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
@@ -95,8 +94,6 @@ fun SearchScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        PremiumThemeBackground(themeState = themeState)
-
         // Content Area matching LikedScreen.kt hierarchy exactly
         Column(
             modifier = Modifier
