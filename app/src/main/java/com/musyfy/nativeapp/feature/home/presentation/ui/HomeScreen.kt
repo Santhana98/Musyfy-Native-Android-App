@@ -360,55 +360,57 @@ fun HomeScreen(
                 }
 
                 // Song items
-                items(filteredSongs) { song ->
+                items(filteredSongs, key = { it.id }) { song ->
                     val status = downloadStatuses[song.id] ?: DownloadStatus.NotDownloaded
-                    SwipeToRevealSongRow(
-                        song = song,
-                        downloadStatus = status,
-                        isActive = uiState.currentSong?.id == song.id,
-                        isSelectionMode = isSelectionMode,
-                        isSelected = selectedSongs.contains(song.id),
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), // Consistent 24dp horizontal padding
-                        onToggleLike = { viewModel.toggleLikeSong(song) },
-                        isRevealed = swipedSongId == song.id,
-                        onReveal = { opened -> swipedSongId = if (opened) song.id else null },
-                        onClick = {
-                            if (isSelectionMode) {
-                                selectedSongs = if (selectedSongs.contains(song.id)) {
-                                    selectedSongs - song.id
+                    Box(modifier = Modifier.animateItem()) {
+                        SwipeToRevealSongRow(
+                            song = song,
+                            downloadStatus = status,
+                            isActive = uiState.currentSong?.id == song.id,
+                            isSelectionMode = isSelectionMode,
+                            isSelected = selectedSongs.contains(song.id),
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), // Consistent 24dp horizontal padding
+                            onToggleLike = { viewModel.toggleLikeSong(song) },
+                            isRevealed = swipedSongId == song.id,
+                            onReveal = { opened -> swipedSongId = if (opened) song.id else null },
+                            onClick = {
+                                if (isSelectionMode) {
+                                    selectedSongs = if (selectedSongs.contains(song.id)) {
+                                        selectedSongs - song.id
+                                    } else {
+                                        selectedSongs + song.id
+                                    }
                                 } else {
-                                    selectedSongs + song.id
+                                    viewModel.playSong(song)
                                 }
-                            } else {
-                                viewModel.playSong(song)
+                            },
+                            onLongClick = {
+                                if (!isSelectionMode) {
+                                    isSelectionMode = true
+                                    selectedSongs = setOf(song.id)
+                                }
+                            },
+                            onDownloadClick = {
+                                if (status is DownloadStatus.Downloaded) {
+                                    viewModel.deleteDownloadedSong(song.id)
+                                } else if (status !is DownloadStatus.Downloading) {
+                                    viewModel.startDownload(song)
+                                }
+                            },
+                            onOptionClick = {
+                                songOptionsTarget = song
+                            },
+                            onPlayNext = {
+                                viewModel.playNext(song)
+                            },
+                            onAddToPlaylist = {
+                                showAddToPlaylistDialog = song.id
+                            },
+                            onDelete = {
+                                showDeleteConfirmationForSong = song
                             }
-                        },
-                        onLongClick = {
-                            if (!isSelectionMode) {
-                                isSelectionMode = true
-                                selectedSongs = setOf(song.id)
-                            }
-                        },
-                        onDownloadClick = {
-                            if (status is DownloadStatus.Downloaded) {
-                                viewModel.deleteDownloadedSong(song.id)
-                            } else if (status !is DownloadStatus.Downloading) {
-                                viewModel.startDownload(song)
-                            }
-                        },
-                        onOptionClick = {
-                            songOptionsTarget = song
-                        },
-                        onPlayNext = {
-                            viewModel.playNext(song)
-                        },
-                        onAddToPlaylist = {
-                            showAddToPlaylistDialog = song.id
-                        },
-                        onDelete = {
-                            showDeleteConfirmationForSong = song
-                        }
-                    )
+                        )
+                    }
                 }
 
                 item {

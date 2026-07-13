@@ -1,6 +1,13 @@
 package com.musyfy.nativeapp.core.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.animation.core.keyframes
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,6 +110,16 @@ fun MusyfyBottomNavigationBar(
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var shouldGlowHome by remember { mutableStateOf(false) }
+
+    LaunchedEffect(activeTab) {
+        if (activeTab == "home") {
+            shouldGlowHome = true
+            delay(1500)
+            shouldGlowHome = false
+        }
+    }
+
     val tabs = listOf(
         BottomTab("home", "Home", "🏠"),
         BottomTab("search", "Search", "🔍"),
@@ -142,6 +159,23 @@ fun MusyfyBottomNavigationBar(
                     label = "tabScale"
                 )
 
+                val isHomeGlow = tab.id == "home" && shouldGlowHome
+                val glowAlpha by animateFloatAsState(
+                    targetValue = if (isHomeGlow) 0.5f else 0f,
+                    animationSpec = if (isHomeGlow) {
+                        keyframes {
+                            durationMillis = 1500
+                            0.0f at 0
+                            0.5f at 300
+                            0.5f at 800
+                            0.0f at 1500
+                        }
+                    } else {
+                        tween(200)
+                    },
+                    label = "homeGlowAlpha"
+                )
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -151,11 +185,31 @@ fun MusyfyBottomNavigationBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = tab.icon,
-                        fontSize = 18.sp,
-                        color = tabColor
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        if (glowAlpha > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(
+                                                Color(0xFFF9423A).copy(alpha = glowAlpha),
+                                                Color.Transparent
+                                            )
+                                        ),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+                        Text(
+                            text = tab.icon,
+                            fontSize = 18.sp,
+                            color = tabColor
+                        )
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = tab.label,
