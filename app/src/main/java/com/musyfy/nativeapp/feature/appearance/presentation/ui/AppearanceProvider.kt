@@ -13,8 +13,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.musyfy.nativeapp.core.ui.theme.BackgroundSource
+import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceBackgroundSource
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceOverlay
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceSettingsCard
+import com.musyfy.nativeapp.feature.appearance.domain.model.ThemeMode
 import com.musyfy.nativeapp.feature.appearance.presentation.AppearanceViewModel
 
 @Composable
@@ -24,6 +27,19 @@ fun AppearanceProvider(
     val viewModel: AppearanceViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
     var isOverlayOpen by remember { mutableStateOf(false) }
+
+    val bgSource = when (state.themeMode) {
+        ThemeMode.X -> BackgroundSource.XTheme
+        ThemeMode.Y -> BackgroundSource.YTheme
+        ThemeMode.CUSTOM -> {
+            val file = state.customWallpaperPath?.let { java.io.File(it) }
+            if (file != null && file.exists()) {
+                BackgroundSource.Custom(file, state.wallpaperVersion)
+            } else {
+                BackgroundSource.XTheme
+            }
+        }
+    }
 
     CompositionLocalProvider(
         LocalAppearanceSettingsCard provides {
@@ -42,7 +58,8 @@ fun AppearanceProvider(
                     onBack = { isOverlayOpen = false }
                 )
             }
-        }
+        },
+        LocalAppearanceBackgroundSource provides bgSource
     ) {
         content()
     }

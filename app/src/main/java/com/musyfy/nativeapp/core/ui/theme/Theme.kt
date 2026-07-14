@@ -23,6 +23,15 @@ val LocalAppearanceSettingsCard = androidx.compose.runtime.staticCompositionLoca
 
 val LocalAppearanceOverlay = androidx.compose.runtime.staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
 
+sealed interface BackgroundSource {
+    object XTheme : BackgroundSource
+    object YTheme : BackgroundSource
+    data class Custom(val file: java.io.File, val version: Long) : BackgroundSource
+}
+
+val LocalAppearanceBackgroundSource = androidx.compose.runtime.staticCompositionLocalOf<BackgroundSource?> { null }
+
+
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,

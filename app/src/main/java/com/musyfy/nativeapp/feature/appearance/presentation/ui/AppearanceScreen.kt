@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.core.ui.theme.LocalAccentColor
+import com.musyfy.nativeapp.core.ui.theme.BackgroundSource
 import com.musyfy.nativeapp.feature.appearance.domain.model.AccentMode
 import com.musyfy.nativeapp.feature.appearance.domain.model.AppearanceState
 import com.musyfy.nativeapp.feature.appearance.domain.model.ParallaxLevel
@@ -150,8 +151,21 @@ fun AppearanceScreen(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
+                    val bgSource = when (state.themeMode) {
+                        ThemeMode.X -> BackgroundSource.XTheme
+                        ThemeMode.Y -> BackgroundSource.YTheme
+                        ThemeMode.CUSTOM -> {
+                            val file = state.customWallpaperPath?.let { java.io.File(it) }
+                            if (file != null && file.exists()) {
+                                BackgroundSource.Custom(file, state.wallpaperVersion)
+                            } else {
+                                BackgroundSource.XTheme
+                            }
+                        }
+                    }
                     LivePreviewMockup(
                         state = state,
+                        bgSource = bgSource,
                         accentColor = accentColor,
                         modifier = Modifier.padding(vertical = 12.dp)
                     )
