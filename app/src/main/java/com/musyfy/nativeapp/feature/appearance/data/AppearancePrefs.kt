@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.musyfy.nativeapp.feature.appearance.di.AppearanceDataStore
 import com.musyfy.nativeapp.feature.appearance.domain.model.AccentMode
@@ -25,6 +26,7 @@ class AppearancePrefs @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT_MODE = stringPreferencesKey("accent_mode")
         val WALLPAPER_PATH = stringPreferencesKey("wallpaper_path")
+        val WALLPAPER_VERSION = longPreferencesKey("wallpaper_version")
         val BLUR_AMOUNT = floatPreferencesKey("blur_amount")
         val BRIGHTNESS = floatPreferencesKey("brightness")
         val DARK_OVERLAY = floatPreferencesKey("dark_overlay")
@@ -39,17 +41,30 @@ class AppearancePrefs @Inject constructor(
     }
 
     val appearanceState: Flow<AppearanceState> = dataStore.data.map { preferences ->
+        val customPath = preferences[Keys.WALLPAPER_PATH]
+        val savedThemeMode = runCatching {
+            ThemeMode.valueOf(preferences[Keys.THEME_MODE] ?: ThemeMode.X.name)
+        }.getOrDefault(ThemeMode.X)
+
+        // Failsafe: Revert to X Theme if Custom is active but file is missing
+        val resolvedThemeMode = if (savedThemeMode == ThemeMode.CUSTOM && 
+            (customPath == null || !java.io.File(customPath).exists())
+        ) {
+            ThemeMode.X
+        } else {
+            savedThemeMode
+        }
+
         AppearanceState(
-            themeMode = runCatching {
-                ThemeMode.valueOf(preferences[Keys.THEME_MODE] ?: ThemeMode.X.name)
-            }.getOrDefault(ThemeMode.X),
+            themeMode = resolvedThemeMode,
             accentMode = runCatching {
                 AccentMode.valueOf(preferences[Keys.ACCENT_MODE] ?: AccentMode.AUTO.name)
             }.getOrDefault(AccentMode.AUTO),
-            customWallpaperPath = preferences[Keys.WALLPAPER_PATH],
-            blurAmount = preferences[Keys.BLUR_AMOUNT] ?: 8f,
+            customWallpaperPath = customPath,
+            wallpaperVersion = preferences[Keys.WALLPAPER_VERSION] ?: 0L,
+            blurAmount = preferences[Keys.BLUR_AMOUNT] ?: 0f,
             brightness = preferences[Keys.BRIGHTNESS] ?: 0f,
-            darkOverlay = preferences[Keys.DARK_OVERLAY] ?: 0.4f,
+            darkOverlay = preferences[Keys.DARK_OVERLAY] ?: 0f,
             visibility = preferences[Keys.VISIBILITY] ?: 1.0f,
             saturation = preferences[Keys.SATURATION] ?: 1.0f,
             scale = runCatching {
@@ -58,7 +73,8 @@ class AppearancePrefs @Inject constructor(
             positionX = preferences[Keys.POSITION_X] ?: 0f,
             positionY = preferences[Keys.POSITION_Y] ?: 0f,
             noiseTexture = preferences[Keys.NOISE_TEXTURE] ?: false,
-            cornerFade = preferences[Keys.CORNER_FADE] ?: true,
+            cornerFade = preferences[Keys.CORNER_FADE] ?: false,
+
             parallax = runCatching {
                 ParallaxLevel.valueOf(preferences[Keys.PARALLAX] ?: ParallaxLevel.MEDIUM.name)
             }.getOrDefault(ParallaxLevel.MEDIUM)
@@ -74,6 +90,7 @@ class AppearancePrefs @Inject constructor(
             } else {
                 preferences.remove(Keys.WALLPAPER_PATH)
             }
+            preferences[Keys.WALLPAPER_VERSION] = state.wallpaperVersion
             preferences[Keys.BLUR_AMOUNT] = state.blurAmount
             preferences[Keys.BRIGHTNESS] = state.brightness
             preferences[Keys.DARK_OVERLAY] = state.darkOverlay
@@ -88,3 +105,4 @@ class AppearancePrefs @Inject constructor(
         }
     }
 }
+

@@ -48,13 +48,16 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK)
         )
         setContent {
-            MusyfyTheme {
-                val navController = rememberNavController()
-                AppNavigation(
-                    navController = navController,
-                    modifier = Modifier.fillMaxSize()
-                )
+            com.musyfy.nativeapp.feature.appearance.presentation.ui.AppearanceProvider {
+                MusyfyTheme {
+                    val navController = rememberNavController()
+                    AppNavigation(
+                        navController = navController,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
+
     }
 }
