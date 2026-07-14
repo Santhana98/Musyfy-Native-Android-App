@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.musyfy.nativeapp.R
+import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceBackground
 
 @Composable
 fun PremiumThemeBackground(
@@ -20,33 +21,41 @@ fun PremiumThemeBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit = {}
 ) {
-    val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
-    Box(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Theme Background Image with per-theme alignment and premium scaling
-        Image(
-            painter = painterResource(id = bgImageRes),
-            contentDescription = "Theme Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
-        )
-
-        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
+    val customBackground = LocalAppearanceBackground.current
+    if (customBackground != null) {
+        Box(modifier = modifier.fillMaxSize()) {
+            customBackground(themeState, Modifier, content)
+        }
+    } else {
+        val bgImageRes = if (themeState == "male") R.drawable.bg_male else R.drawable.bg_female
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0x80000000), // Softened 50% opacity black at the top
-                            Color(0xE6070708), // Softened 90% opacity transition
-                            Color(0xFF070708)  // Solid base color
+            modifier = modifier.fillMaxSize()
+        ) {
+            // Theme Background Image with per-theme alignment and premium scaling
+            Image(
+                painter = painterResource(id = bgImageRes),
+                contentDescription = "Theme Background",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alignment = if (themeState == "male") Alignment.Center else Alignment.TopCenter
+            )
+
+            // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x80000000), // Softened 50% opacity black at the top
+                                Color(0xE6070708), // Softened 90% opacity transition
+                                Color(0xFF070708)  // Solid base color
+                            )
                         )
                     )
-                )
-        )
-        content()
+            )
+            content()
+        }
     }
 }
+

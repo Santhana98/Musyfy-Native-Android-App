@@ -14,6 +14,13 @@ import androidx.compose.runtime.SideEffect
 import android.app.Activity
 import androidx.core.view.WindowCompat
 
+// Safe default CompositionLocals to enable future modular appearance system integration
+val LocalAccentColor = androidx.compose.runtime.staticCompositionLocalOf { androidx.compose.ui.graphics.Color(0xFFF9423A) }
+
+val LocalAppearanceBackground = androidx.compose.runtime.staticCompositionLocalOf<(@Composable androidx.compose.foundation.layout.BoxScope.(themeState: String, modifier: androidx.compose.ui.Modifier, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) -> Unit)?> { null }
+
+val LocalAppearanceSettingsCard = androidx.compose.runtime.staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
+
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
@@ -32,13 +39,15 @@ fun MusyfyTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val accentColor = LocalAccentColor.current
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val base = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            base.copy(primary = accentColor)
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> DarkColorScheme.copy(primary = accentColor)
+        else -> LightColorScheme.copy(primary = accentColor)
     }
 
     val view = LocalView.current
@@ -59,3 +68,4 @@ fun MusyfyTheme(
         content = content
     )
 }
+

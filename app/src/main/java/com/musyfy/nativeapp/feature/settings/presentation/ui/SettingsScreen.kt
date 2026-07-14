@@ -116,96 +116,102 @@ fun SettingsScreen(
             }
 
             // Personalized Theme Settings Card
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF111112), RoundedCornerShape(14.dp))
-                    .border(1.dp, Color(0xFF1A1A1C), RoundedCornerShape(14.dp))
-                    .padding(18.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 10.dp)
+            val customSettingsCard = com.musyfy.nativeapp.core.ui.theme.LocalAppearanceSettingsCard.current
+            if (customSettingsCard != null) {
+                customSettingsCard()
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF111112), RoundedCornerShape(14.dp))
+                        .border(1.dp, Color(0xFF1A1A1C), RoundedCornerShape(14.dp))
+                        .padding(18.dp)
                 ) {
-                    Text(text = "🎨", fontSize = 16.sp)
-                    Text(
-                        text = "Personalized Theme Settings",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-                Text(
-                    text = "Choose Theme Background — personalizes the interface with your preferred artwork.",
-                    color = Color(0xFF666666),
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Male Theme Toggle Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                if (themeState == "male") Color(0xFF1A1A1C) else Color.Transparent
-                            )
-                            .border(
-                                width = 2.dp,
-                                color = if (themeState == "male") Color(0xFFE53935) else Color(0xFF2A2A2E),
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .clickable { viewModel.saveTheme("male") }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(bottom = 10.dp)
                     ) {
+                        Text(text = "🎨", fontSize = 16.sp)
                         Text(
-                            text = "🧑 X Theme",
+                            text = "Personalized Theme Settings",
                             color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
- 
-                    // Female Theme Toggle Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                if (themeState == "female") {
-                                    Brush.linearGradient(
-                                        colors = listOf(Color(0xFFE53935), Color(0xFFFF7043))
-                                    )
-                                } else {
-                                    Brush.linearGradient(
-                                        colors = listOf(Color.Transparent, Color.Transparent)
-                                    )
-                                }
-                            )
-                            .border(
-                                width = 2.dp,
-                                color = if (themeState == "female") Color(0xFFE53935) else Color(0xFF2A2A2E),
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .clickable { viewModel.saveTheme("female") }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                    Text(
+                        text = "Choose Theme Background — personalizes the interface with your preferred artwork.",
+                        color = Color(0xFF666666),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "👩 Y Theme",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        // Male Theme Toggle Button
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(
+                                    if (themeState == "male") Color(0xFF1A1A1C) else Color.Transparent
+                                )
+                                .border(
+                                    width = 2.dp,
+                                    color = if (themeState == "male") Color(0xFFE53935) else Color(0xFF2A2A2E),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .clickable { viewModel.saveTheme("male") }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "🧑 X Theme",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+     
+                        // Female Theme Toggle Button
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(
+                                    if (themeState == "female") {
+                                        Brush.linearGradient(
+                                            colors = listOf(Color(0xFFE53935), Color(0xFFFF7043))
+                                        )
+                                    } else {
+                                        Brush.linearGradient(
+                                            colors = listOf(Color.Transparent, Color.Transparent)
+                                        )
+                                    }
+                                )
+                                .border(
+                                    width = 2.dp,
+                                    color = if (themeState == "female") Color(0xFFE53935) else Color(0xFF2A2A2E),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .clickable { viewModel.saveTheme("female") }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "👩 Y Theme",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
+
 
             Spacer(modifier = Modifier.height(8.dp))
 
