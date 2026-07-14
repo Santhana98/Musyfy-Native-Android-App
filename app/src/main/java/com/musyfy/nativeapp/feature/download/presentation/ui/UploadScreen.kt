@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -181,8 +183,9 @@ fun UploadScreen(
     val previewError = (previewState as? PreviewUiState.Error)?.message
 
     // Palette Color Extraction
-    var glowColor by remember { mutableStateOf(Color(0xFFF9423A)) } // Musyfy Red default
-    LaunchedEffect(previewInfo?.thumbnail) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    var glowColor by remember(primaryColor) { mutableStateOf(primaryColor) } // Dynamic active accent fallback
+    LaunchedEffect(previewInfo?.thumbnail, primaryColor) {
         val thumbnailUrl = previewInfo?.thumbnail
         if (thumbnailUrl != null) {
             val loader = coil.ImageLoader(context)
@@ -203,16 +206,16 @@ fun UploadScreen(
                                 .takeIf { it != 0 }
                                 ?: it.getMutedColor(0)
                                 .takeIf { it != 0 }
-                                ?: 0xFFF9423A.toInt()
+                                ?: primaryColor.toArgb()
                             glowColor = Color(color)
                         }
                     }
                 }
             } catch (e: Exception) {
-                glowColor = Color(0xFFF9423A)
+                glowColor = primaryColor
             }
         } else {
-            glowColor = Color(0xFFF9423A)
+            glowColor = primaryColor
         }
     }
 
@@ -426,9 +429,9 @@ fun UploadScreen(
                 },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFF9423A).copy(alpha = 0.6f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                     unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
-                    cursorColor = Color(0xFFF9423A),
+                    cursorColor = MaterialTheme.colorScheme.primary,
                     focusedContainerColor = Color(0x1AFFFFFF),
                     unfocusedContainerColor = Color(0x0AFFFFFF),
                     focusedTextColor = Color.White,
@@ -465,7 +468,7 @@ fun UploadScreen(
                     } else {
                         Text(
                             text = "PASTE",
-                            color = Color(0xFFF9423A),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -703,7 +706,7 @@ fun UploadScreen(
                                 if (importState == ImportState.Importing) {
                                     Canvas(modifier = Modifier.size(130.dp)) {
                                         drawArc(
-                                            color = Color(0xFFF9423A),
+                                            color = primaryColor,
                                             startAngle = progressRotation,
                                             sweepAngle = 120f,
                                             useCenter = false,
@@ -797,7 +800,7 @@ fun UploadScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Badge("YouTube", Color(0xFFFF0000).copy(alpha = 0.12f), Color(0xFFFF4D4D))
-                                Badge("HQ Audio", Color(0xFFF9423A).copy(alpha = 0.12f), Color(0xFFF9423A))
+                                Badge("HQ Audio", MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), MaterialTheme.colorScheme.primary)
                                 val durationText = remember(previewInfo.duration) {
                                     val d = previewInfo.duration ?: 0L
                                     val m = d / 60
@@ -816,7 +819,7 @@ fun UploadScreen(
                         ) {
                             Text(
                                 text = statusText,
-                                color = Color(0xFFF9423A),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -873,7 +876,7 @@ fun UploadScreen(
                     .background(
                         brush = Brush.linearGradient(
                             colors = if (isButtonEnabled || importState != ImportState.Idle) {
-                                listOf(Color(0xFF1A1A1C), Color(0xFFF9423A), Color(0xFFFF8C42))
+                                listOf(Color(0xFF1A1A1C), MaterialTheme.colorScheme.primary, Color(0xFFFF8C42))
                             } else {
                                 listOf(Color(0xFF2C2C2E), Color(0xFF1E1E20))
                             }
@@ -882,7 +885,7 @@ fun UploadScreen(
                     )
                     .border(
                         1.dp,
-                        if (isButtonEnabled || importState != ImportState.Idle) Color(0xFFF9423A).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f),
+                        if (isButtonEnabled || importState != ImportState.Idle) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.05f),
                         RoundedCornerShape(26.dp)
                     )
                     .clickable(
@@ -1015,7 +1018,7 @@ fun UploadScreen(
                 // Clear button to reset import error and type again
                 Text(
                     text = "Clear and Try Again",
-                    color = Color(0xFFF9423A),
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier

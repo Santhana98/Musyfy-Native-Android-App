@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -57,9 +58,9 @@ fun ProgressSection(
             },
             valueRange = 0f..durationMs.coerceAtLeast(1L).toFloat(),
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFE53935),
-                activeTrackColor = Color(0xFFE53935),
-                inactiveTrackColor = Color(0xFF2A1010),
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                 activeTickColor = Color.Transparent,
                 inactiveTickColor = Color.Transparent
             ),

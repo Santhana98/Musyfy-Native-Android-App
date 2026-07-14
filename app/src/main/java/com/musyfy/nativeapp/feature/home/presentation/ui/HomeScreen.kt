@@ -34,6 +34,7 @@ import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.ui.PlaylistDetailScreen
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
@@ -154,7 +155,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Add 📚",
-                            color = Color(0xFFF9423A),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable {
@@ -225,7 +226,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
                                 .size(36.dp) // slightly smaller
-                                .background(Color(0xFFF9423A), CircleShape)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
                                 .clickable { onNavigateToUpload() },
                             contentAlignment = Alignment.Center
                         ) {
@@ -300,12 +301,12 @@ fun HomeScreen(
                         tabs.forEach { (id, label, _) ->
                             val isActive = activeTab == id
                             val bg by animateColorAsState(
-                                targetValue = if (isActive) Color(0xFFF9423A) else Color(0x0FFFFFFF),
+                                targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0x0FFFFFFF),
                                 animationSpec = tween(durationMillis = 200),
                                 label = "chipBg"
                             )
                             val borderColor by animateColorAsState(
-                                targetValue = if (isActive) Color(0xFFF9423A) else Color(0x12FFFFFF),
+                                targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0x12FFFFFF),
                                 animationSpec = tween(durationMillis = 200),
                                 label = "chipBorder"
                             )
@@ -441,7 +442,7 @@ fun HomeScreen(
                         }
                         Text(
                             text = "+",
-                            color = Color(0xFFF9423A),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -497,7 +498,7 @@ fun HomeScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFF9423A),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = Color(0x33FFFFFF)
                     ),
                     singleLine = true
@@ -513,7 +514,7 @@ fun HomeScreen(
                         }
                     }
                 ) {
-                    Text("CREATE", color = Color(0xFFF9423A))
+                    Text("CREATE", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {

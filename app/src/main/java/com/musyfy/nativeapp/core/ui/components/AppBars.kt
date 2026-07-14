@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -149,7 +150,7 @@ fun MusyfyBottomNavigationBar(
             tabs.forEach { tab ->
                 val isActive = activeTab == tab.id
                 val tabColor by animateColorAsState(
-                    targetValue = if (isActive) Color(0xFFF9423A) else Color(0x7AFFFFFF),
+                    targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0x7AFFFFFF),
                     animationSpec = tween(durationMillis = 200),
                     label = "tabColor"
                 )
@@ -158,7 +159,7 @@ fun MusyfyBottomNavigationBar(
                     animationSpec = tween(durationMillis = 200),
                     label = "tabScale"
                 )
-
+ 
                 val isHomeGlow = tab.id == "home" && shouldGlowHome
                 val glowAlpha by animateFloatAsState(
                     targetValue = if (isHomeGlow) 0.5f else 0f,
@@ -175,7 +176,7 @@ fun MusyfyBottomNavigationBar(
                     },
                     label = "homeGlowAlpha"
                 )
-
+ 
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -196,7 +197,7 @@ fun MusyfyBottomNavigationBar(
                                     .background(
                                         Brush.radialGradient(
                                             colors = listOf(
-                                                Color(0xFFF9423A).copy(alpha = glowAlpha),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
                                                 Color.Transparent
                                             )
                                         ),

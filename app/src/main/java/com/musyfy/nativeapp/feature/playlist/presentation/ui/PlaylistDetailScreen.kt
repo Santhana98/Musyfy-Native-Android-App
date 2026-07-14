@@ -166,7 +166,7 @@ fun PlaylistDetailScreen(
             ) {
                 Text(
                     text = "← Back",
-                    color = Color(0xFFF9423A), // Brand Red back action
+                    color = MaterialTheme.colorScheme.primary, // Brand Red back action
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.clickable { onCollapse() }
@@ -178,7 +178,7 @@ fun PlaylistDetailScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFF9423A))
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
                 Text(
@@ -213,7 +213,7 @@ fun PlaylistDetailScreen(
                             }
                         },
                         modifier = Modifier.weight(1.5f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF9423A)),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(text = "▶ PLAY ALL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -390,7 +390,7 @@ fun PlaylistDetailScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFFE53935),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = Color(0x33FFFFFF)
                     ),
                     singleLine = true
@@ -405,7 +405,7 @@ fun PlaylistDetailScreen(
                         }
                     }
                 ) {
-                    Text("SAVE", color = Color(0xFFE53935))
+                    Text("SAVE", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {

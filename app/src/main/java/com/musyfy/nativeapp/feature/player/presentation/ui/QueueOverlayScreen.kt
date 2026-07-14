@@ -73,7 +73,7 @@ fun QueueOverlayScreen(
                     TextButton(
                         onClick = { viewModel.clearQueue() }
                     ) {
-                        Text(text = "CLEAR ALL", color = Color(0xFFE53935), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(text = "CLEAR ALL", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     TextButton(
@@ -162,7 +162,7 @@ fun QueueOverlayScreen(
                             ) {
                                 Text(
                                     text = song.title,
-                                    color = if (isActive) Color(0xFFE53935) else Color.White,
+                                    color = if (isActive) MaterialTheme.colorScheme.primary else Color.White,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,

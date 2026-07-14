@@ -115,8 +115,8 @@ fun LegacySongRow(
     onLongClick: () -> Unit = {},
     onToggleLike: () -> Unit = {}
 ) {
-    val bg = if (isSelected) Color(0x33F9423A) else if (isActive) Color(0x1EF9423A) else Color(0x0AFFFFFF)
-    val border = if (isSelected) Color(0x66F9423A) else if (isActive) Color(0x40F9423A) else Color(0x12FFFFFF)
+    val bg = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0AFFFFFF)
+    val border = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else Color(0x12FFFFFF)
 
     Row(
         modifier = modifier
@@ -137,7 +137,7 @@ fun LegacySongRow(
                 checked = isSelected,
                 onCheckedChange = { onClick() },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = Color(0xFFF9423A),
+                    checkedColor = MaterialTheme.colorScheme.primary,
                     uncheckedColor = Color(0x4DFFFFFF),
                     checkmarkColor = Color.White
                 )
@@ -186,7 +186,7 @@ fun LegacySongRow(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(Color(0xB3F9423A)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = "▶", color = Color.White, fontSize = 14.sp)
@@ -200,7 +200,7 @@ fun LegacySongRow(
         ) {
             Text(
                 text = song.title,
-                color = if (isActive) Color(0xFFF9423A) else Color.White,
+                color = if (isActive) MaterialTheme.colorScheme.primary else Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -232,7 +232,7 @@ fun LegacySongRow(
                         CircularProgressIndicator(
                             progress = { downloadStatus.progress },
                             modifier = Modifier.size(16.dp),
-                            color = Color(0xFFF9423A),
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp
                         )
                     }
@@ -248,7 +248,7 @@ fun LegacySongRow(
             // Like Button
             Text(
                 text = if (song.liked) "❤️" else "🤍",
-                color = if (song.liked) Color(0xFFF9423A) else Color(0xFF9E9E9E),
+                color = if (song.liked) MaterialTheme.colorScheme.primary else Color(0xFF9E9E9E),
                 fontSize = 16.sp,
                 modifier = Modifier
                     .clickable { onToggleLike() }
@@ -323,7 +323,7 @@ fun SwipeToRevealSongRow(
                 val likeInteraction = remember { MutableInteractionSource() }
                 val isLikePressed by likeInteraction.collectIsPressedAsState()
                 val isLiked = song.liked
-                val likeIconColor = if (isLikePressed || isLiked) Color(0xFFF9423A) else Color.White
+                val likeIconColor = if (isLikePressed || isLiked) MaterialTheme.colorScheme.primary else Color.White
                 Box(
                     modifier = Modifier
                         .width(buttonWidth)
@@ -352,7 +352,7 @@ fun SwipeToRevealSongRow(
                 // Action 2: Add to Playlist
                 val addInteraction = remember { MutableInteractionSource() }
                 val isAddPressed by addInteraction.collectIsPressedAsState()
-                val addIconColor = if (isAddPressed) Color(0xFFF9423A) else Color.White
+                val addIconColor = if (isAddPressed) MaterialTheme.colorScheme.primary else Color.White
                 Box(
                     modifier = Modifier
                         .width(buttonWidth)

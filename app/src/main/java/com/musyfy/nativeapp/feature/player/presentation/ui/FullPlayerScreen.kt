@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -143,13 +144,13 @@ fun FullPlayerScreen(
                     ) {
                         when (currentSongStatus) {
                             is DownloadStatus.NotDownloaded -> {
-                                Text(text = "⬇", color = Color(0xFFE53935), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "⬇", color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             }
                             is DownloadStatus.Downloading -> {
                                 androidx.compose.material3.CircularProgressIndicator(
                                     progress = { currentSongStatus.progress },
                                     modifier = Modifier.size(20.dp),
-                                    color = Color(0xFFE53935),
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 2.5.dp
                                 )
                             }

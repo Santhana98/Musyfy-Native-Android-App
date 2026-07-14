@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -83,7 +84,7 @@ fun MiniPlayerPlaceholder(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(progressPct.coerceIn(0f, 1f))
-                    .background(Color(0xFFF9423A)) // Musyfy Brand Red progress
+                    .background(MaterialTheme.colorScheme.primary) // Dynamic progress
             )
         }
 
@@ -136,7 +137,7 @@ fun MiniPlayerPlaceholder(
                     )
                     Text(
                         text = "✓",
-                        color = Color(0xFFF9423A), // Brand color accent
+                        color = Color(0xFFF9423A), // Brand color accent (Category A)
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -159,7 +160,7 @@ fun MiniPlayerPlaceholder(
                 // Download button (⬇)
                 Text(
                     text = "⬇",
-                    color = Color(0xFFF9423A),
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 18.sp,
                     modifier = Modifier
                         .clickable { }
@@ -179,7 +180,7 @@ fun MiniPlayerPlaceholder(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            Brush.linearGradient(listOf(Color(0xFFF9423A), Color(0xFFD32F2F))),
+                            Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))),
                             CircleShape
                         )
                         .clickable { onPlayPauseClick() },

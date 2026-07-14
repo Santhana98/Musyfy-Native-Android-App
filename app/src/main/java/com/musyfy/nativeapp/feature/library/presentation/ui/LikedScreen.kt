@@ -115,7 +115,7 @@ fun LikedScreen(
                 ) {
                     Text(
                         text = "Add 📚",
-                        color = Color(0xFFF9423A),
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
@@ -175,7 +175,7 @@ fun LikedScreen(
                 // Sort Options Trigger Button
                 Box {
                     IconButton(onClick = { showSortMenu = true }) {
-                        Text(text = "Sort ↕", color = Color(0xFFF9423A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Sort ↕", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                     DropdownMenu(
                         expanded = showSortMenu,
@@ -224,7 +224,7 @@ fun LikedScreen(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    cursorColor = Color(0xFFE53935)
+                    cursorColor = MaterialTheme.colorScheme.primary
                 ),
                 placeholder = {
                     Text(

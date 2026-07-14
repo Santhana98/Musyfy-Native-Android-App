@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,7 +42,7 @@ fun PlayerControls(
         // 1. Shuffle Toggle Button
         Text(
             text = "🔀",
-            color = if (shuffleModeEnabled) Color(0xFFE53935) else Color(0xFF666666),
+            color = if (shuffleModeEnabled) MaterialTheme.colorScheme.primary else Color(0xFF666666),
             fontSize = 22.sp,
             modifier = Modifier
                 .clickable { onShuffleToggle() }
@@ -63,7 +64,7 @@ fun PlayerControls(
             modifier = Modifier
                 .size(68.dp)
                 .background(
-                    Brush.linearGradient(listOf(Color(0xFFE53935), Color(0xFFC62828))),
+                    Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.85f))),
                     CircleShape
                 )
                 .clickable { onPlayPauseClick() },
@@ -92,7 +93,7 @@ fun PlayerControls(
             1 -> "🔂"
             else -> "🔁"
         }
-        val repeatColor = if (repeatMode != 0) Color(0xFFE53935) else Color(0xFF666666)
+        val repeatColor = if (repeatMode != 0) MaterialTheme.colorScheme.primary else Color(0xFF666666)
         Text(
             text = repeatText,
             color = repeatColor,

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -92,7 +93,7 @@ fun SettingsScreen(
                                 .size(52.dp)
                                 .background(
                                     Brush.linearGradient(
-                                        colors = listOf(Color(0xFFE53935), Color(0xFFFF7043))
+                                        colors = listOf(MaterialTheme.colorScheme.primary, Color(0xFFFF7043))
                                     ),
                                     CircleShape
                                 ),
@@ -162,7 +163,7 @@ fun SettingsScreen(
                                     )
                                     .border(
                                         width = 2.dp,
-                                        color = if (themeState == "male") Color(0xFFE53935) else Color(0xFF2A2A2E),
+                                        color = if (themeState == "male") MaterialTheme.colorScheme.primary else Color(0xFF2A2A2E),
                                         shape = RoundedCornerShape(24.dp)
                                     )
                                     .clickable { viewModel.saveTheme("male") }
@@ -185,7 +186,7 @@ fun SettingsScreen(
                                     .background(
                                         if (themeState == "female") {
                                             Brush.linearGradient(
-                                                colors = listOf(Color(0xFFE53935), Color(0xFFFF7043))
+                                                colors = listOf(MaterialTheme.colorScheme.primary, Color(0xFFFF7043))
                                             )
                                         } else {
                                             Brush.linearGradient(
@@ -195,7 +196,7 @@ fun SettingsScreen(
                                     )
                                     .border(
                                         width = 2.dp,
-                                        color = if (themeState == "female") Color(0xFFE53935) else Color(0xFF2A2A2E),
+                                        color = if (themeState == "female") MaterialTheme.colorScheme.primary else Color(0xFF2A2A2E),
                                         shape = RoundedCornerShape(24.dp)
                                     )
                                     .clickable { viewModel.saveTheme("female") }
@@ -220,15 +221,15 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x1AE53935))
-                        .border(1.dp, Color(0x4DE53935), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                         .clickable { viewModel.logout(onLogout) }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Sign Out",
-                        color = Color(0xFFE53935),
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold
                     )

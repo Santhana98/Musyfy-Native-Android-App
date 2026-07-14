@@ -52,6 +52,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -184,7 +185,7 @@ fun SearchScreen(
         label = "SearchBarScale"
     )
     val searchBarBorderColor by animateColorAsState(
-        targetValue = if (isSearchFocused) Color(0xFFF9423A) else Color.White.copy(alpha = 0.08f),
+        targetValue = if (isSearchFocused) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f),
         animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "SearchBarBorder"
     )
@@ -257,8 +258,8 @@ fun SearchScreen(
                     .shadow(
                         elevation = searchBarShadowRadius,
                         shape = RoundedCornerShape(18.dp),
-                        ambientColor = if (isSearchFocused) Color(0xFFF9423A) else Color.Black,
-                        spotColor = if (isSearchFocused) Color(0xFFF9423A) else Color.Black
+                        ambientColor = if (isSearchFocused) MaterialTheme.colorScheme.primary else Color.Black,
+                        spotColor = if (isSearchFocused) MaterialTheme.colorScheme.primary else Color.Black
                     )
                     .background(
                         if (isSearchFocused) Color(0x33000000) else Color(0x1F000000),
@@ -270,7 +271,7 @@ fun SearchScreen(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 ),
-                cursorBrush = SolidColor(Color(0xFFF9423A)),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -86,7 +87,7 @@ fun AuthTextField(
         ),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
-        cursorBrush = SolidColor(Color(0xFFE53935)),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
@@ -133,8 +134,9 @@ fun AuthButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
     val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFFE53935), Color(0xFFC62828))
+        colors = listOf(primaryColor, primaryColor.copy(alpha = 0.85f))
     )
     Card(
         shape = RoundedCornerShape(28.dp), // matched pill shape

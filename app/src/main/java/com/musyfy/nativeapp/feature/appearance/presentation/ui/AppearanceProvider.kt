@@ -12,11 +12,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.core.ui.theme.BackgroundSource
+import com.musyfy.nativeapp.core.ui.theme.LocalAccentColor
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceBackgroundSource
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceOverlay
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceSettingsCard
+import com.musyfy.nativeapp.feature.appearance.domain.model.AccentMode
 import com.musyfy.nativeapp.feature.appearance.domain.model.ThemeMode
 import com.musyfy.nativeapp.feature.appearance.presentation.AppearanceViewModel
 
@@ -26,6 +29,7 @@ fun AppearanceProvider(
 ) {
     val viewModel: AppearanceViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
+    val accentState by viewModel.accentState.collectAsState()
     var isOverlayOpen by remember { mutableStateOf(false) }
 
     val bgSource = when (state.themeMode) {
@@ -41,7 +45,14 @@ fun AppearanceProvider(
         }
     }
 
+    val activeAccentColor = if (state.accentMode == AccentMode.AUTO) {
+        Color(accentState.primaryAccent)
+    } else {
+        Color(0xFFF9423A)
+    }
+
     CompositionLocalProvider(
+        LocalAccentColor provides activeAccentColor,
         LocalAppearanceSettingsCard provides {
             AppearanceEntryCard(
                 onClick = { isOverlayOpen = true }

@@ -377,20 +377,46 @@ fun AppearanceScreen(
                 }
 
                 // Wallpaper Controls
+                // Advanced Wallpaper Effects (Coming Soon)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Wallpaper Controls",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(start = 4.dp)
-                    )
+                    ) {
+                        Text(
+                            text = "Advanced Wallpaper Effects",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(accentColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Coming Soon",
+                                color = accentColor,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(24.dp))
                             .background(Color(0xFF111112))
                             .border(1.dp, Color(0xFF1A1A1C), RoundedCornerShape(24.dp))
+                            .clickable {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Advanced wallpaper effects are coming in a future update.",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
                             .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -398,57 +424,62 @@ fun AppearanceScreen(
                         PremiumSlider(
                             label = "Wallpaper Visibility",
                             value = state.visibility,
-                            onValueChange = { viewModel.updateState(state.copy(visibility = it)) },
+                            onValueChange = { },
                             valueRange = 0f..1f,
                             valueText = "${(state.visibility * 100).toInt()}%",
-                            accentColor = accentColor
+                            accentColor = accentColor,
+                            enabled = false
                         )
 
                         // Blur
                         PremiumSlider(
                             label = "Blur Amount",
                             value = state.blurAmount,
-                            onValueChange = { viewModel.updateState(state.copy(blurAmount = it)) },
+                            onValueChange = { },
                             valueRange = 0f..20f,
                             valueText = "${state.blurAmount.toInt()}dp",
-                            accentColor = accentColor
+                            accentColor = accentColor,
+                            enabled = false
                         )
 
                         // Brightness
                         PremiumSlider(
                             label = "Brightness",
                             value = state.brightness,
-                            onValueChange = { viewModel.updateState(state.copy(brightness = it)) },
+                            onValueChange = { },
                             valueRange = -0.5f..0.5f,
                             valueText = "${if (state.brightness >= 0) "+" else ""}${(state.brightness * 100).toInt()}%",
-                            accentColor = accentColor
+                            accentColor = accentColor,
+                            enabled = false
                         )
 
                         // Dark Overlay
                         PremiumSlider(
                             label = "Dark Overlay",
                             value = state.darkOverlay,
-                            onValueChange = { viewModel.updateState(state.copy(darkOverlay = it)) },
+                            onValueChange = { },
                             valueRange = 0f..0.8f,
                             valueText = "${(state.darkOverlay * 100).toInt()}%",
-                            accentColor = accentColor
+                            accentColor = accentColor,
+                            enabled = false
                         )
 
                         // Saturation
                         PremiumSlider(
                             label = "Saturation",
                             value = state.saturation,
-                            onValueChange = { viewModel.updateState(state.copy(saturation = it)) },
+                            onValueChange = { },
                             valueRange = 0f..2f,
                             valueText = "${(state.saturation * 100).toInt()}%",
-                            accentColor = accentColor
+                            accentColor = accentColor,
+                            enabled = false
                         )
 
                         // Wallpaper Scale Selection
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 text = "Wallpaper Scale",
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = Color.White.copy(alpha = 0.4f),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -459,15 +490,9 @@ fun AppearanceScreen(
                                     WallpaperScale.FILL -> "Fill"
                                     WallpaperScale.ZOOM -> "Zoom"
                                 },
-                                onOptionSelected = { option ->
-                                    val scale = when (option) {
-                                        "Fit" -> WallpaperScale.FIT
-                                        "Fill" -> WallpaperScale.FILL
-                                        else -> WallpaperScale.ZOOM
-                                    }
-                                    viewModel.updateState(state.copy(scale = scale))
-                                },
-                                accentColor = accentColor
+                                onOptionSelected = { },
+                                accentColor = accentColor,
+                                enabled = false
                             )
                         }
 
@@ -475,7 +500,7 @@ fun AppearanceScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 text = "Parallax Motion",
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = Color.White.copy(alpha = 0.4f),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -487,16 +512,9 @@ fun AppearanceScreen(
                                     ParallaxLevel.MEDIUM -> "Med"
                                     ParallaxLevel.HIGH -> "High"
                                 },
-                                onOptionSelected = { option ->
-                                    val lvl = when (option) {
-                                        "Off" -> ParallaxLevel.OFF
-                                        "Low" -> ParallaxLevel.LOW
-                                        "Med" -> ParallaxLevel.MEDIUM
-                                        else -> ParallaxLevel.HIGH
-                                    }
-                                    viewModel.updateState(state.copy(parallax = lvl))
-                                },
-                                accentColor = accentColor
+                                onOptionSelected = { },
+                                accentColor = accentColor,
+                                enabled = false
                             )
                         }
 
@@ -509,24 +527,25 @@ fun AppearanceScreen(
                             Column {
                                 Text(
                                     text = "Noise Texture",
-                                    color = Color.White.copy(alpha = 0.8f),
+                                    color = Color.White.copy(alpha = 0.4f),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = "Adds premium grain overlay",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    text = "Adds grain overlay",
+                                    color = Color.White.copy(alpha = 0.3f),
                                     fontSize = 11.sp
                                 )
                             }
                             Switch(
                                 checked = state.noiseTexture,
-                                onCheckedChange = { viewModel.updateState(state.copy(noiseTexture = it)) },
+                                onCheckedChange = null,
+                                enabled = false,
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = accentColor,
-                                    uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                                    uncheckedTrackColor = Color(0xFF2A2A2E)
+                                    disabledCheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                                    disabledCheckedTrackColor = accentColor.copy(alpha = 0.3f),
+                                    disabledUncheckedThumbColor = Color.White.copy(alpha = 0.2f),
+                                    disabledUncheckedTrackColor = Color(0xFF2A2A2E).copy(alpha = 0.4f)
                                 )
                             )
                         }
@@ -540,24 +559,25 @@ fun AppearanceScreen(
                             Column {
                                 Text(
                                     text = "Corner Fade",
-                                    color = Color.White.copy(alpha = 0.8f),
+                                    color = Color.White.copy(alpha = 0.4f),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = "Soft border fading to black",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = Color.White.copy(alpha = 0.3f),
                                     fontSize = 11.sp
                                 )
                             }
                             Switch(
                                 checked = state.cornerFade,
-                                onCheckedChange = { viewModel.updateState(state.copy(cornerFade = it)) },
+                                onCheckedChange = null,
+                                enabled = false,
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = accentColor,
-                                    uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                                    uncheckedTrackColor = Color(0xFF2A2A2E)
+                                    disabledCheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                                    disabledCheckedTrackColor = accentColor.copy(alpha = 0.3f),
+                                    disabledUncheckedThumbColor = Color.White.copy(alpha = 0.2f),
+                                    disabledUncheckedTrackColor = Color(0xFF2A2A2E).copy(alpha = 0.4f)
                                 )
                             )
                         }
@@ -753,7 +773,8 @@ fun SegmentedSelector(
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = modifier
@@ -766,7 +787,9 @@ fun SegmentedSelector(
     ) {
         options.forEach { option ->
             val isSelected = option == selectedOption
-            val targetBg = if (isSelected) accentColor else Color.Transparent
+            val targetBg = if (isSelected) {
+                if (enabled) accentColor else accentColor.copy(alpha = 0.4f)
+            } else Color.Transparent
             val bg by animateColorAsState(targetBg)
             
             Box(
@@ -774,13 +797,21 @@ fun SegmentedSelector(
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(bg)
-                    .clickable { onOptionSelected(option) }
+                    .then(
+                        if (enabled) {
+                            Modifier.clickable { onOptionSelected(option) }
+                        } else Modifier
+                    )
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = option,
-                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+                    color = if (isSelected) {
+                        if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
+                    } else {
+                        if (enabled) Color.White.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.3f)
+                    },
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
@@ -797,7 +828,8 @@ fun PremiumSlider(
     valueRange: ClosedFloatingPointRange<Float>,
     valueText: String,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -807,13 +839,13 @@ fun PremiumSlider(
         ) {
             Text(
                 text = label,
-                color = Color.White.copy(alpha = 0.8f),
+                color = if (enabled) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.4f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = valueText,
-                color = accentColor,
+                color = if (enabled) accentColor else accentColor.copy(alpha = 0.4f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -822,15 +854,20 @@ fun PremiumSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
+            enabled = enabled,
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = accentColor,
-                inactiveTrackColor = Color(0xFF1E1E20)
+                inactiveTrackColor = Color(0xFF1E1E20),
+                disabledThumbColor = Color.White.copy(alpha = 0.3f),
+                disabledActiveTrackColor = accentColor.copy(alpha = 0.3f),
+                disabledInactiveTrackColor = Color(0xFF1E1E20).copy(alpha = 0.3f)
             ),
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
+
 
 @Composable
 fun ThemeActionButton(
