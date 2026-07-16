@@ -18,6 +18,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import com.musyfy.nativeapp.domain.repository.UserRepository
+import com.musyfy.nativeapp.core.analytics.AnalyticsEvent
+import com.musyfy.nativeapp.core.analytics.AnalyticsManager
+import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -26,6 +29,7 @@ class AuthViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase,
     private val resetPasswordUseCase: ResetPasswordUseCase,
     private val userRepository: UserRepository,
+    private val analyticsManager: AnalyticsManager,
     getAuthStateUseCase: GetAuthStateUseCase
 ) : ViewModel() {
 
@@ -52,6 +56,7 @@ class AuthViewModel @Inject constructor(
             _uiState.value = AuthUiState.Loading
             val result = loginUseCase(email, password)
             if (result.isSuccess) {
+                analyticsManager.logEvent(AnalyticsEvent(name = AnalyticsConstants.Events.LOGIN))
                 _uiState.value = AuthUiState.Success
                 onSuccess()
             } else {
@@ -92,6 +97,7 @@ class AuthViewModel @Inject constructor(
             _uiState.value = AuthUiState.Loading
             val result = logoutUseCase()
             if (result.isSuccess) {
+                analyticsManager.logEvent(AnalyticsEvent(name = AnalyticsConstants.Events.LOGOUT))
                 _uiState.value = AuthUiState.Idle
                 onSuccess()
             } else {
