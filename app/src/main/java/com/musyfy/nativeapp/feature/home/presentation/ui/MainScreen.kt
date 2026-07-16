@@ -189,11 +189,15 @@ fun MainScreen(
             if (activeTab == "home") {
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val localAuthState by authViewModel.authState.collectAsState()
+                var isLoggingOut by remember { mutableStateOf(false) }
 
                 MusyfyTopBar(
                     userName = localAuthState.userName ?: "User",
-                    onProfileClick = {
-                        authViewModel.logout(onLogout)
+                    onLogoutClick = {
+                        if (!isLoggingOut) {
+                            isLoggingOut = true
+                            authViewModel.logout(onLogout)
+                        }
                     },
                     modifier = Modifier
                         .align(androidx.compose.ui.Alignment.TopCenter)

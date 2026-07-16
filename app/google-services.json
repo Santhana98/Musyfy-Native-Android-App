@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "821712339903",
+    "project_id": "musyfy-dfa0c",
+    "storage_bucket": "musyfy-dfa0c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821712339903:android:670136f822b0204b85170a",
+        "android_client_info": {
+          "package_name": "com.musyfy.nativeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDIUe3339RPApU7qUWdgrrGDLnRfzX9Bs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

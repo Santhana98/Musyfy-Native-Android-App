@@ -87,6 +87,7 @@ class AuthViewModel @Inject constructor(
     }
 
     fun logout(onSuccess: () -> Unit) {
+        if (_uiState.value is AuthUiState.Loading) return
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
             val result = logoutUseCase()

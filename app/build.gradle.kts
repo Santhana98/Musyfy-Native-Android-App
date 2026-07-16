@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -45,6 +46,9 @@ android {
 }
 
 dependencies {
+        // Firebase Analytics
+        implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+        implementation("com.google.firebase:firebase-analytics")
     // AndroidX Core SplashScreen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 

@@ -46,12 +46,17 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.scale
 
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+
 @Composable
 fun MusyfyTopBar(
     userName: String,
-    onProfileClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isMenuExpanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -84,23 +89,62 @@ fun MusyfyTopBar(
         }
 
         // Right: User Profile Pill (soft glassmorphism)
-        Row(
-            modifier = Modifier
-                .background(Color(0x0CFFFFFF), RoundedCornerShape(24.dp))
-                .border(1.dp, Color(0x15FFFFFF), RoundedCornerShape(24.dp))
-                .clickable { onProfileClick() }
-                .padding(horizontal = 14.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(text = "👤", fontSize = 13.sp)
-            Text(
-                text = "$userName ▾",
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.3.sp
-            )
+        Box {
+            Row(
+                modifier = Modifier
+                    .background(Color(0x0CFFFFFF), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0x15FFFFFF), RoundedCornerShape(24.dp))
+                    .clickable { isMenuExpanded = true }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(text = "👤", fontSize = 13.sp)
+                Text(
+                    text = "$userName ▾",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.3.sp
+                )
+            }
+
+            DropdownMenu(
+                expanded = isMenuExpanded,
+                onDismissRequest = { isMenuExpanded = false },
+                modifier = Modifier
+                    .background(Color(0xFA121214), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "👤   Profile",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    },
+                    onClick = {
+                        isMenuExpanded = false
+                    }
+                )
+                HorizontalDivider(color = Color(0x1AFFFFFF))
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "🚪   Logout",
+                            color = Color(0xFFF9423A), // Brand accent red color
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    onClick = {
+                        isMenuExpanded = false
+                        onLogoutClick()
+                    }
+                )
+            }
         }
     }
 }
