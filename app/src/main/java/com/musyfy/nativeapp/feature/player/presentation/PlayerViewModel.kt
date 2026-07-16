@@ -49,6 +49,10 @@ class PlayerViewModel @Inject constructor(
         playerManager.play()
     }
 
+    fun dismissPlaybackSession() {
+        playerManager.dismissPlaybackSession()
+    }
+
     fun pause() {
         playerManager.pause()
     }

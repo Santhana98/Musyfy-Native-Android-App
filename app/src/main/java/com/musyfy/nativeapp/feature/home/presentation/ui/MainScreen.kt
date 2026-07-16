@@ -116,34 +116,30 @@ fun MainScreen(
                             }
                         }
 
-                        MiniPlayerPlaceholder(
-                            songTitle = currentSong?.title ?: "No Song Playing",
-                            artistName = currentSong?.artist.orEmpty(),
-                            isPlaying = uiState.isPlaying,
-                            progressPct = progressPct,
-                            imageUrl = artworkModel,
-                            currentTimeText = formatTime(uiState.currentPositionMs),
-                            durationText = formatTime(uiState.durationMs),
-                            durationMs = uiState.durationMs,
-                            onSeek = { position -> viewModel.seekTo(position) },
-                            onExpandClick = { isPlayerExpanded = true },
-                            onPlayPauseClick = {
-                                if (uiState.isPlaying) {
-                                    viewModel.pause()
-                                } else {
-                                    if (currentSong == null) {
-                                        val songsList = viewModel.songs.value
-                                        if (songsList.isNotEmpty()) {
-                                            viewModel.playSong(songsList.first())
-                                        }
+                        if (currentSong != null && uiState.playbackSessionActive) {
+                            MiniPlayerPlaceholder(
+                                songTitle = currentSong.title,
+                                artistName = currentSong.artist.orEmpty(),
+                                isPlaying = uiState.isPlaying,
+                                progressPct = progressPct,
+                                imageUrl = artworkModel,
+                                currentTimeText = formatTime(uiState.currentPositionMs),
+                                durationText = formatTime(uiState.durationMs),
+                                durationMs = uiState.durationMs,
+                                onSeek = { position -> viewModel.seekTo(position) },
+                                onExpandClick = { isPlayerExpanded = true },
+                                onPlayPauseClick = {
+                                    if (uiState.isPlaying) {
+                                        viewModel.pause()
                                     } else {
                                         viewModel.play()
                                     }
-                                }
-                            },
-                            onPrevClick = { viewModel.skipToPrevious() },
-                            onNextClick = { viewModel.skipToNext() }
-                        )
+                                },
+                                onPrevClick = { viewModel.skipToPrevious() },
+                                onNextClick = { viewModel.skipToNext() },
+                                onDismissClick = { viewModel.dismissPlaybackSession() }
+                            )
+                        }
                         MusyfyBottomNavigationBar(
                             activeTab = activeTab,
                             onTabSelected = { activeTab = it },

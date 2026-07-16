@@ -31,14 +31,25 @@ class PlayerManagerImpl @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : PlayerManager {
 
+    companion object {
+        private const val PREFS_NAME = "musyfy_playback_prefs"
+        private const val KEY_LAST_SONG_ID = "last_song_id"
+        private const val KEY_LAST_POSITION = "last_position"
+        private const val KEY_PLAYBACK_SESSION_ACTIVE = "playback_session_active"
+    }
+
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    private val _playbackUiState = MutableStateFlow(PlaybackUiState())
+    private val sharedPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val _playbackUiState = MutableStateFlow(
+        PlaybackUiState(
+            playbackSessionActive = sharedPrefs.getBoolean(KEY_PLAYBACK_SESSION_ACTIVE, true)
+        )
+    )
     override val playbackUiState: StateFlow<PlaybackUiState> = _playbackUiState.asStateFlow()
 
     private var progressJob: Job? = null
-    
-    private val sharedPrefs = context.getSharedPreferences("musyfy_playback_prefs", Context.MODE_PRIVATE)
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -71,10 +82,12 @@ class PlayerManagerImpl @Inject constructor(
             _playbackUiState.update {
                 it.copy(
                     isPlaying = isPlaying,
-                    state = if (isPlaying) PlayerState.PLAYING else mapExoPlayerState(exoPlayer.playbackState, isPlaying)
+                    state = if (isPlaying) PlayerState.PLAYING else mapExoPlayerState(exoPlayer.playbackState, isPlaying),
+                    playbackSessionActive = if (isPlaying) true else it.playbackSessionActive
                 )
             }
             if (isPlaying) {
+                saveSessionActiveState(true)
                 startProgressUpdate()
                 startService()
             } else {
@@ -138,8 +151,9 @@ class PlayerManagerImpl @Inject constructor(
             exoPlayer.addListener(listener)
             
             // Restore last played song and progress position
-            val lastSongId = sharedPrefs.getString("last_song_id", null)
-            val lastPosition = sharedPrefs.getLong("last_position", 0L)
+            val lastSongId = sharedPrefs.getString(KEY_LAST_SONG_ID, null)
+            val lastPosition = sharedPrefs.getLong(KEY_LAST_POSITION, 0L)
+            val sessionActive = sharedPrefs.getBoolean(KEY_PLAYBACK_SESSION_ACTIVE, true)
             if (lastSongId != null) {
                 try {
                     val allSongs = songRepository.getSongs().first()
@@ -158,7 +172,8 @@ class PlayerManagerImpl @Inject constructor(
                                 currentPositionMs = lastPosition,
                                 state = PlayerState.PAUSED,
                                 isPlaying = false,
-                                queue = allSongs
+                                queue = allSongs,
+                                playbackSessionActive = sessionActive
                             )
                         }
                         
@@ -180,13 +195,15 @@ class PlayerManagerImpl @Inject constructor(
             
             // Load all songs, checking for local files first (m4a/mp3/artwork)
             val allSongs = songRepository.getSongs().first()
+            saveSessionActiveState(true)
             _playbackUiState.update {
                 it.copy(
                     currentSong = song,
                     state = PlayerState.LOADING,
                     isPlaying = false,
                     errorMessage = null,
-                    queue = allSongs
+                    queue = allSongs,
+                    playbackSessionActive = true
                 )
             }
             
@@ -388,9 +405,32 @@ class PlayerManagerImpl @Inject constructor(
 
     private fun savePlaybackState(songId: String, position: Long) {
         sharedPrefs.edit()
-            .putString("last_song_id", songId)
-            .putLong("last_position", position)
+            .putString(KEY_LAST_SONG_ID, songId)
+            .putLong(KEY_LAST_POSITION, position)
             .apply()
+    }
+
+    private fun saveSessionActiveState(active: Boolean) {
+        sharedPrefs.edit()
+            .putBoolean(KEY_PLAYBACK_SESSION_ACTIVE, active)
+            .apply()
+    }
+
+    override fun dismissPlaybackSession() {
+        coroutineScope.launch {
+            if (!_playbackUiState.value.isPlaying) {
+                saveSessionActiveState(false)
+                _playbackUiState.update {
+                    it.copy(playbackSessionActive = false)
+                }
+                try {
+                    val intent = Intent(context, PlayerService::class.java)
+                    context.stopService(intent)
+                } catch (e: Exception) {
+                    // Safe fallback
+                }
+            }
+        }
     }
 
     private fun mapExoPlayerState(playbackState: Int, isPlaying: Boolean): PlayerState {

@@ -11,7 +11,8 @@ data class PlaybackUiState(
     val errorMessage: String? = null,
     val queue: List<Song> = emptyList(),
     val shuffleModeEnabled: Boolean = false,
-    val repeatMode: Int = 0 // 0 = OFF, 1 = ONE, 2 = ALL
+    val repeatMode: Int = 0, // 0 = OFF, 1 = ONE, 2 = ALL
+    val playbackSessionActive: Boolean = false
 )
 
 enum class PlayerState {

@@ -18,5 +18,6 @@ interface PlayerManager {
     fun removeFromQueue(songId: String)
     fun setShuffleModeEnabled(enabled: Boolean)
     fun setRepeatMode(repeatMode: Int)
+    fun dismissPlaybackSession()
     fun release()
 }
