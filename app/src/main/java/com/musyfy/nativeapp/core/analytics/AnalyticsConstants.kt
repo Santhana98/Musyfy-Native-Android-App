@@ -21,4 +21,10 @@ object AnalyticsConstants {
         const val SCREEN_NAME = "screen_name"
         const val SCREEN_CLASS = "screen_class"
     }
+
+    object UserProperties {
+        const val DEVICE_MODEL = "device_model"
+        const val ANDROID_VERSION = "android_version"
+        const val APP_VERSION = "app_version"
+    }
 }

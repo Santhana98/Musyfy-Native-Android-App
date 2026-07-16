@@ -24,6 +24,25 @@ class MusyfyApplication : Application() {
         analyticsManager.logEvent(
             AnalyticsEvent(name = AnalyticsConstants.Events.APP_OPEN)
         )
+
+        // Set environment User Properties once on launch
+        val deviceModel = android.os.Build.MODEL
+        val androidVersion = android.os.Build.VERSION.RELEASE
+        val appVersion = try {
+            val packageInfo = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+            packageInfo.versionName ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
+
+        analyticsManager.setUserProperty(AnalyticsConstants.UserProperties.DEVICE_MODEL, deviceModel)
+        analyticsManager.setUserProperty(AnalyticsConstants.UserProperties.ANDROID_VERSION, androidVersion)
+        analyticsManager.setUserProperty(AnalyticsConstants.UserProperties.APP_VERSION, appVersion)
         
         // Asynchronously initialize and update the yt-dlp binary rules
         CoroutineScope(Dispatchers.IO).launch {
