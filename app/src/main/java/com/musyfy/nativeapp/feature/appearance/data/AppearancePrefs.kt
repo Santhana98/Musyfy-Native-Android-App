@@ -11,6 +11,7 @@ import com.musyfy.nativeapp.feature.appearance.di.AppearanceDataStore
 import com.musyfy.nativeapp.feature.appearance.domain.model.AccentMode
 import com.musyfy.nativeapp.feature.appearance.domain.model.AppearanceState
 import com.musyfy.nativeapp.feature.appearance.domain.model.ParallaxLevel
+import com.musyfy.nativeapp.feature.appearance.domain.model.PlayerBackgroundMode
 import com.musyfy.nativeapp.feature.appearance.domain.model.ThemeMode
 import com.musyfy.nativeapp.feature.appearance.domain.model.WallpaperScale
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,7 @@ class AppearancePrefs @Inject constructor(
         val NOISE_TEXTURE = booleanPreferencesKey("noise_texture")
         val CORNER_FADE = booleanPreferencesKey("corner_fade")
         val PARALLAX = stringPreferencesKey("parallax")
+        val PLAYER_BACKGROUND_MODE = stringPreferencesKey("player_background_mode")
     }
 
     val appearanceState: Flow<AppearanceState> = dataStore.data.map { preferences ->
@@ -77,7 +79,10 @@ class AppearancePrefs @Inject constructor(
 
             parallax = runCatching {
                 ParallaxLevel.valueOf(preferences[Keys.PARALLAX] ?: ParallaxLevel.MEDIUM.name)
-            }.getOrDefault(ParallaxLevel.MEDIUM)
+            }.getOrDefault(ParallaxLevel.MEDIUM),
+            playerBackgroundMode = runCatching {
+                PlayerBackgroundMode.valueOf(preferences[Keys.PLAYER_BACKGROUND_MODE] ?: PlayerBackgroundMode.BLACK.name)
+            }.getOrDefault(PlayerBackgroundMode.BLACK)
         )
     }
 
@@ -102,6 +107,7 @@ class AppearancePrefs @Inject constructor(
             preferences[Keys.NOISE_TEXTURE] = state.noiseTexture
             preferences[Keys.CORNER_FADE] = state.cornerFade
             preferences[Keys.PARALLAX] = state.parallax.name
+            preferences[Keys.PLAYER_BACKGROUND_MODE] = state.playerBackgroundMode.name
         }
     }
 }

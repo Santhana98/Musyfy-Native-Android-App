@@ -230,7 +230,7 @@ fun MainScreen(
                     animationSpec = androidx.compose.animation.core.tween(durationMillis = 200)
                 )
             ) {
-                com.musyfy.nativeapp.feature.player.presentation.ui.FullPlayerScreen(
+                com.musyfy.nativeapp.feature.player.presentation.ui.PremiumFullPlayerScreen(
                     viewModel = viewModel,
                     onCollapse = { isPlayerExpanded = false }
                 )

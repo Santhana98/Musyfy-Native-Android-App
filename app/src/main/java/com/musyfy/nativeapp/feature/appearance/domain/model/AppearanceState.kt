@@ -16,6 +16,10 @@ enum class ParallaxLevel {
     OFF, LOW, MEDIUM, HIGH
 }
 
+enum class PlayerBackgroundMode {
+    WHITE, BLACK
+}
+
 data class AppearanceState(
     val themeMode: ThemeMode = ThemeMode.X,
     val accentMode: AccentMode = AccentMode.AUTO,
@@ -31,5 +35,6 @@ data class AppearanceState(
     val positionY: Float = 0f,
     val noiseTexture: Boolean = false,
     val cornerFade: Boolean = false,    // false default to preserve original X/Y identity
-    val parallax: ParallaxLevel = ParallaxLevel.MEDIUM
+    val parallax: ParallaxLevel = ParallaxLevel.MEDIUM,
+    val playerBackgroundMode: PlayerBackgroundMode = PlayerBackgroundMode.BLACK
 )
