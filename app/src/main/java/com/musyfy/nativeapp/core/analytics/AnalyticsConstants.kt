@@ -12,6 +12,7 @@ object AnalyticsConstants {
 
     object Events {
         const val SCREEN_VIEW = "screen_view"
+        const val APP_OPEN = "app_open"
     }
 
     object Params {
