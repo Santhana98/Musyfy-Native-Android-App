@@ -19,9 +19,18 @@ import com.musyfy.nativeapp.core.ui.theme.MusyfyTheme
 import com.musyfy.nativeapp.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import javax.inject.Inject
+import androidx.compose.runtime.DisposableEffect
+import androidx.navigation.NavController
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsTracker
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsMapper
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var navigationAnalyticsTracker: NavigationAnalyticsTracker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         splashScreen.setOnExitAnimationListener { splashScreenView ->
@@ -51,6 +60,20 @@ class MainActivity : ComponentActivity() {
             com.musyfy.nativeapp.feature.appearance.presentation.ui.AppearanceProvider {
                 MusyfyTheme {
                     val navController = rememberNavController()
+
+                    DisposableEffect(navController) {
+                        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                            val screenName = NavigationAnalyticsMapper.mapRouteToScreenName(destination.route)
+                            if (screenName != null) {
+                                navigationAnalyticsTracker.logScreenView(screenName)
+                            }
+                        }
+                        navController.addOnDestinationChangedListener(listener)
+                        onDispose {
+                            navController.removeOnDestinationChangedListener(listener)
+                        }
+                    }
+
                     AppNavigation(
                         navController = navController,
                         modifier = Modifier.fillMaxSize()

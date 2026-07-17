@@ -52,6 +52,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsViewModel
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsMapper
 
 @Composable
 fun MainScreen(
@@ -59,8 +61,16 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
+    val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
     var activeTab by remember { mutableStateOf("home") }
     var isPlayerExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(activeTab) {
+        val screenName = NavigationAnalyticsMapper.mapRouteToScreenName(activeTab)
+        if (screenName != null) {
+            analyticsViewModel.tracker.logScreenView(screenName)
+        }
+    }
 
     val homeLazyListState = rememberLazyListState()
     val topBarHeightPx = with(LocalDensity.current) { 76.dp.toPx() }
