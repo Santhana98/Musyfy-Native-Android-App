@@ -19,4 +19,12 @@ object AnalyticsModule {
     ): AnalyticsManager {
         return FirebaseAnalyticsManager(context)
     }
+
+    @Provides
+    @Singleton
+    fun providePlaybackSourceProvider(
+        defaultProvider: DefaultPlaybackSourceProvider
+    ): PlaybackSourceProvider {
+        return defaultProvider
+    }
 }

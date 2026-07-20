@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.musyfy.nativeapp.core.analytics.PlaybackAnalyticsTracker
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -28,7 +29,8 @@ import javax.inject.Singleton
 class PlayerManagerImpl @Inject constructor(
     private val exoPlayer: ExoPlayer,
     private val songRepository: SongRepository,
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val playbackAnalyticsTracker: PlaybackAnalyticsTracker
 ) : PlayerManager {
 
     companion object {
@@ -70,6 +72,13 @@ class PlayerManagerImpl @Inject constructor(
                     currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
                 )
             }
+            val currentSong = _playbackUiState.value.currentSong
+            if (playbackState == Player.STATE_ENDED && currentSong != null) {
+                playbackAnalyticsTracker.trackPlaybackCompleted(
+                    song = currentSong,
+                    durationMs = exoPlayer.duration.coerceAtLeast(0L)
+                )
+            }
             if (isPlaying) {
                 startProgressUpdate()
             } else {
@@ -84,6 +93,23 @@ class PlayerManagerImpl @Inject constructor(
                     isPlaying = isPlaying,
                     state = if (isPlaying) PlayerState.PLAYING else mapExoPlayerState(exoPlayer.playbackState, isPlaying),
                     playbackSessionActive = if (isPlaying) true else it.playbackSessionActive
+                )
+            }
+            val currentSong = _playbackUiState.value.currentSong
+            if (currentSong != null) {
+                val playbackMode = when {
+                    exoPlayer.shuffleModeEnabled -> "shuffle"
+                    exoPlayer.repeatMode == Player.REPEAT_MODE_ONE -> "repeat_one"
+                    exoPlayer.repeatMode == Player.REPEAT_MODE_ALL -> "repeat_all"
+                    else -> "standard"
+                }
+                playbackAnalyticsTracker.trackIsPlayingChanged(
+                    isPlayingNow = isPlaying,
+                    song = currentSong,
+                    durationMs = exoPlayer.duration.coerceAtLeast(0L),
+                    currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                    playbackMode = playbackMode,
+                    playbackState = exoPlayer.playbackState
                 )
             }
             if (isPlaying) {
@@ -109,6 +135,17 @@ class PlayerManagerImpl @Inject constructor(
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             android.util.Log.d("MusyfyPlayback", "PlayerManager: onMediaItemTransition: MediaItem ID=${mediaItem?.mediaId}, URI=${mediaItem?.localConfiguration?.uri}")
+            
+            val oldSong = _playbackUiState.value.currentSong
+            val oldPositionMs = _playbackUiState.value.currentPositionMs
+            val oldDurationMs = _playbackUiState.value.durationMs
+            val playbackMode = when {
+                exoPlayer.shuffleModeEnabled -> "shuffle"
+                exoPlayer.repeatMode == Player.REPEAT_MODE_ONE -> "repeat_one"
+                exoPlayer.repeatMode == Player.REPEAT_MODE_ALL -> "repeat_all"
+                else -> "standard"
+            }
+
             if (mediaItem == null) {
                 _playbackUiState.update {
                     it.copy(
@@ -117,10 +154,19 @@ class PlayerManagerImpl @Inject constructor(
                         durationMs = 0L
                     )
                 }
+                playbackAnalyticsTracker.trackMediaItemTransition(
+                    newSong = null,
+                    reason = reason,
+                    oldSong = oldSong,
+                    oldPositionMs = oldPositionMs,
+                    oldDurationMs = oldDurationMs,
+                    playbackMode = playbackMode
+                )
             } else {
                 coroutineScope.launch {
                     val allSongs = songRepository.getSongs().first()
                     val song = allSongs.find { it.id == mediaItem.mediaId } ?: SongMapper.toSong(mediaItem)
+                    val newIndex = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
                     android.util.Log.d("MusyfyPlayback", "PlayerManager: Resolved active Song: ID=${song.id}, Title=${song.title}, audioPath=${song.audioPath}")
                     _playbackUiState.update {
                         it.copy(
@@ -129,6 +175,15 @@ class PlayerManagerImpl @Inject constructor(
                             durationMs = exoPlayer.duration.coerceAtLeast(0L)
                         )
                     }
+                    playbackAnalyticsTracker.trackMediaItemTransition(
+                        newSong = song,
+                        newIndex = newIndex,
+                        reason = reason,
+                        oldSong = oldSong,
+                        oldPositionMs = oldPositionMs,
+                        oldDurationMs = oldDurationMs,
+                        playbackMode = playbackMode
+                    )
                 }
             }
         }
@@ -137,12 +192,14 @@ class PlayerManagerImpl @Inject constructor(
             _playbackUiState.update {
                 it.copy(shuffleModeEnabled = shuffleModeEnabled)
             }
+            playbackAnalyticsTracker.trackShuffleToggled(shuffleModeEnabled)
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
             _playbackUiState.update {
                 it.copy(repeatMode = repeatMode)
             }
+            playbackAnalyticsTracker.trackRepeatToggled(repeatMode)
         }
     }
 
@@ -193,6 +250,26 @@ class PlayerManagerImpl @Inject constructor(
         coroutineScope.launch {
             android.util.Log.d("MusyfyPlayback", "PlayerManager: playSong requested for song ID=${song.id}")
             
+            val oldSong = _playbackUiState.value.currentSong
+            val currentQueue = _playbackUiState.value.queue
+            if (oldSong != null && currentQueue.isNotEmpty()) {
+                val currentIndex = currentQueue.indexOfFirst { it.id == oldSong.id }
+                val targetIndex = currentQueue.indexOfFirst { it.id == song.id }
+                if (currentIndex != -1 && targetIndex != -1) {
+                    if (targetIndex == currentIndex + 1 || (currentIndex == currentQueue.size - 1 && targetIndex == 0)) {
+                        playbackAnalyticsTracker.notifyManualSkipRequested(isNext = true)
+                    } else if (targetIndex == currentIndex - 1 || (currentIndex == 0 && targetIndex == currentQueue.size - 1)) {
+                        playbackAnalyticsTracker.notifyManualSkipRequested(isNext = false)
+                    } else {
+                        playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+                    }
+                } else {
+                    playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+                }
+            } else {
+                playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+            }
+
             // Load all songs, checking for local files first (m4a/mp3/artwork)
             val allSongs = songRepository.getSongs().first()
             saveSessionActiveState(true)
