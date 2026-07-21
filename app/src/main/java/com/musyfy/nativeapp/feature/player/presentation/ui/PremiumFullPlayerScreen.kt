@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -62,6 +63,11 @@ import com.musyfy.nativeapp.feature.appearance.domain.model.PlayerBackgroundMode
 import com.musyfy.nativeapp.feature.appearance.presentation.AppearanceViewModel
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PremiumFullPlayerScreen(
@@ -98,7 +104,7 @@ fun PremiumFullPlayerScreen(
         label = "PremiumBgColor"
     )
     val animWallpaperAlpha by animateFloatAsState(
-        targetValue = if (isLightMode) 0.12f else 0.28f,
+        targetValue = if (isLightMode) 0.12f else 0.55f,
         animationSpec = tween(durationMillis = 500),
         label = "PremiumWallpaperAlpha"
     )
@@ -113,16 +119,27 @@ fun PremiumFullPlayerScreen(
 
     // Wallpaper rendering from unified appearance pipeline
     val bgSource = LocalAppearanceBackgroundSource.current
+    val alignment = if (bgSource == BackgroundSource.YTheme) Alignment.TopCenter else Alignment.Center
+    val customBitmapState = if (bgSource is BackgroundSource.Custom) {
+        produceState<android.graphics.Bitmap?>(initialValue = null, bgSource.file, bgSource.version) {
+            value = withContext(Dispatchers.IO) {
+                runCatching {
+                    android.graphics.BitmapFactory.decodeFile(bgSource.file.absolutePath)
+                }.getOrNull()
+            }
+        }
+    } else {
+        null
+    }
+
     val wallpaperPainter = when (bgSource) {
         BackgroundSource.XTheme -> painterResource(id = R.drawable.bg_male)
         BackgroundSource.YTheme -> painterResource(id = R.drawable.bg_female)
-        is BackgroundSource.Custom -> coil.compose.rememberAsyncImagePainter(
-            model = coil.request.ImageRequest.Builder(context)
-                .data(bgSource.file)
-                .memoryCacheKey("custom_wallpaper_${bgSource.version}")
-                .diskCacheKey("custom_wallpaper_${bgSource.version}")
-                .build()
-        )
+        is BackgroundSource.Custom -> {
+            customBitmapState?.value?.let { bitmap ->
+                BitmapPainter(bitmap.asImageBitmap())
+            }
+        }
         null -> null
     }
 
@@ -162,7 +179,19 @@ fun PremiumFullPlayerScreen(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                    alignment = alignment,
                     alpha = animWallpaperAlpha
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Transparent,
+                                0.78f to Color.Transparent,
+                                0.86f to Color.Black
+                            )
+                        )
                 )
             }
 

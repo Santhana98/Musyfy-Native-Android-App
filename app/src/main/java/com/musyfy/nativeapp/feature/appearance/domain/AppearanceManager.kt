@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.musyfy.nativeapp.core.analytics.SettingsAnalyticsTracker
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -27,7 +28,8 @@ import javax.inject.Singleton
 class AppearanceManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appearancePrefs: AppearancePrefs,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val settingsAnalyticsTracker: SettingsAnalyticsTracker
 ) {
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
 
@@ -61,6 +63,18 @@ class AppearanceManager @Inject constructor(
         scope.launch {
             state.collect { appearanceState ->
                 extractPaletteIfNeeded(appearanceState)
+            }
+        }
+
+        scope.launch(Dispatchers.Default) {
+            state.collect { appearanceState ->
+                settingsAnalyticsTracker.trackThemeChanged(appearanceState.themeMode)
+                settingsAnalyticsTracker.trackPlayerModeChanged(appearanceState.playerBackgroundMode)
+                settingsAnalyticsTracker.trackWallpaperChanged(
+                    appearanceState.customWallpaperPath,
+                    appearanceState.wallpaperVersion
+                )
+                settingsAnalyticsTracker.trackAccentChanged(appearanceState.accentMode)
             }
         }
     }

@@ -23,6 +23,18 @@ object AnalyticsConstants {
         const val SONG_SKIP_PREVIOUS = "song_skip_previous"
         const val SHUFFLE_TOGGLE = "shuffle_toggle"
         const val REPEAT_TOGGLE = "repeat_toggle"
+        const val IMPORT_STARTED = "import_started"
+        const val IMPORT_COMPLETED = "import_completed"
+        const val IMPORT_FAILED = "import_failed"
+        const val IMPORT_CANCELLED = "import_cancelled"
+        const val DOWNLOAD_STARTED = "download_started"
+        const val DOWNLOAD_COMPLETED = "download_completed"
+        const val DOWNLOAD_FAILED = "download_failed"
+        const val DOWNLOAD_CANCELLED = "download_cancelled"
+        const val THEME_CHANGED = "theme_changed"
+        const val PLAYER_MODE_CHANGED = "player_mode_changed"
+        const val WALLPAPER_CHANGED = "wallpaper_changed"
+        const val ACCENT_CHANGED = "accent_changed"
     }
 
     object Params {
@@ -40,6 +52,25 @@ object AnalyticsConstants {
         const val PLAYBACK_MODE = "playback_mode"
         const val SHUFFLE_ENABLED = "shuffle_enabled"
         const val REPEAT_MODE = "repeat_mode"
+        const val IMPORT_SESSION_ID = "import_session_id"
+        const val IMPORT_SOURCE = "import_source"
+        const val FAILURE_REASON = "failure_reason"
+        const val DOWNLOAD_SESSION_ID = "download_session_id"
+        const val DOWNLOAD_DURATION_MS = "download_duration_ms"
+        const val THEME_NAME = "theme_name"
+        const val PLAYER_MODE = "player_mode"
+        const val WALLPAPER_ACTION = "wallpaper_action"
+        const val ACCENT_SOURCE = "accent_source"
+    }
+
+    object FailureReasons {
+        const val NETWORK_ERROR = "network_error"
+        const val METADATA_ERROR = "metadata_error"
+        const val DOWNLOAD_ERROR = "download_error"
+        const val STORAGE_ERROR = "storage_error"
+        const val INVALID_URL = "invalid_url"
+        const val UNKNOWN_ERROR = "unknown_error"
+        const val PERMISSION_ERROR = "permission_error"
     }
 
     object UserProperties {

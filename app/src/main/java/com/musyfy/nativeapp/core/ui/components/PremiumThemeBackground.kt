@@ -16,6 +16,11 @@ import androidx.compose.ui.res.painterResource
 import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.theme.BackgroundSource
 import com.musyfy.nativeapp.core.ui.theme.LocalAppearanceBackgroundSource
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PremiumThemeBackground(
@@ -27,16 +32,30 @@ fun PremiumThemeBackground(
         ?: if (themeState == "female") BackgroundSource.YTheme else BackgroundSource.XTheme
 
     val alignment = if (bgSource == BackgroundSource.YTheme) Alignment.TopCenter else Alignment.Center
+    val customBitmapState = if (bgSource is BackgroundSource.Custom) {
+        produceState<android.graphics.Bitmap?>(initialValue = null, bgSource.file, bgSource.version) {
+            value = withContext(Dispatchers.IO) {
+                runCatching {
+                    android.graphics.BitmapFactory.decodeFile(bgSource.file.absolutePath)
+                }.getOrNull()
+            }
+        }
+    } else {
+        null
+    }
+
     val painter = when (bgSource) {
         BackgroundSource.XTheme -> painterResource(id = R.drawable.bg_male)
         BackgroundSource.YTheme -> painterResource(id = R.drawable.bg_female)
-        is BackgroundSource.Custom -> coil.compose.rememberAsyncImagePainter(
-            model = coil.request.ImageRequest.Builder(LocalContext.current)
-                .data(bgSource.file)
-                .memoryCacheKey("custom_wallpaper_${bgSource.version}")
-                .diskCacheKey("custom_wallpaper_${bgSource.version}")
-                .build()
-        )
+        is BackgroundSource.Custom -> {
+            val bitmap = customBitmapState?.value
+            if (bitmap != null) {
+                BitmapPainter(bitmap.asImageBitmap())
+            } else {
+                // Fallback to solid color or empty painter while loading
+                androidx.compose.ui.graphics.painter.ColorPainter(Color.Black)
+            }
+        }
     }
 
     Box(
@@ -57,11 +76,9 @@ fun PremiumThemeBackground(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0x80000000), // Softened 50% opacity black at the top
-                            Color(0xE6070708), // Softened 90% opacity transition
-                            Color(0xFF070708)  // Solid base color
-                        )
+                        0.0f to Color(0x80000000), // Softened 50% opacity black at the top
+                        0.78f to Color(0x80000000), // Maintain themed background through playback controls
+                        0.86f to Color(0xFF070708)  // Solid base color before bottom utility section
                     )
                 )
         )

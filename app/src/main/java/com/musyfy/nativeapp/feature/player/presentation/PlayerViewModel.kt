@@ -3,6 +3,8 @@ package com.musyfy.nativeapp.feature.player.presentation
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
+import com.musyfy.nativeapp.core.analytics.ImportAnalyticsTracker
 import com.musyfy.nativeapp.core.playback.PlaybackUiState
 import com.musyfy.nativeapp.core.playback.PlayerManager
 import com.musyfy.nativeapp.domain.model.Song
@@ -26,6 +28,7 @@ class PlayerViewModel @Inject constructor(
     private val playerManager: PlayerManager,
     private val songRepository: SongRepository,
     private val songDownloader: SongDownloader,
+    private val importAnalyticsTracker: ImportAnalyticsTracker,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -124,10 +127,42 @@ class PlayerViewModel @Inject constructor(
     }
 
     // Downloader Interface controls
+    // Architectural Note: For Phase 9.5.3 only, PlayerViewModel owns the integration with ImportAnalyticsTracker.
+    // This is an intentional architectural decision to minimize changes and may be moved closer to the downloader layer in a future refactor.
     fun startDownload(song: Song) {
         viewModelScope.launch {
             val job = launch {
-                songDownloader.downloadSong(song).collect { }
+                songDownloader.downloadSong(song).collect { status ->
+                    when (status) {
+                        is DownloadStatus.Downloading -> {
+                            // Log download_started when the actual download begins (first progress update)
+                            importAnalyticsTracker.trackDownloadStarted(song.id)
+                        }
+                        is DownloadStatus.Downloaded -> {
+                            // Log download completed lifecycle event
+                            importAnalyticsTracker.trackDownloadCompleted(song.id)
+
+                            // Log import_completed only after the song has been successfully persisted to the local library,
+                            // not merely when the download finishes.
+                            val persistedSong = songRepository.getSongs().first().find { it.id == song.id }
+                            if (persistedSong != null && persistedSong.audioPath != null) {
+                                importAnalyticsTracker.trackImportCompleted(song.id)
+                            } else {
+                                importAnalyticsTracker.trackImportFailed(song.id, AnalyticsConstants.FailureReasons.STORAGE_ERROR)
+                            }
+                        }
+                        is DownloadStatus.Error -> {
+                            // Log download failed lifecycle event
+                            val normalizedDownloadReason = normalizeDownloadErrorForDownload(status.message)
+                            importAnalyticsTracker.trackDownloadFailed(song.id, normalizedDownloadReason)
+
+                            // Log import failed lifecycle event
+                            val normalizedReason = normalizeDownloadError(status.message)
+                            importAnalyticsTracker.trackImportFailed(song.id, normalizedReason)
+                        }
+                        else -> {}
+                    }
+                }
             }
             (songDownloader as? SongDownloaderImpl)?.registerJob(song.id, job)
             job.invokeOnCompletion {
@@ -136,11 +171,44 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    private fun normalizeDownloadError(message: String?): String {
+        val msg = message?.lowercase() ?: return AnalyticsConstants.FailureReasons.UNKNOWN_ERROR
+        return when {
+            msg.contains("network") || msg.contains("connection") || msg.contains("timeout") || msg.contains("host") -> 
+                AnalyticsConstants.FailureReasons.NETWORK_ERROR
+            msg.contains("rename") || msg.contains("permission") || msg.contains("space") || msg.contains("storage") || msg.contains("save") || msg.contains("file") -> 
+                AnalyticsConstants.FailureReasons.STORAGE_ERROR
+            msg.contains("download") || msg.contains("exit code") || msg.contains("youtube-dl") || msg.contains("server returned code") -> 
+                AnalyticsConstants.FailureReasons.DOWNLOAD_ERROR
+            else -> 
+                AnalyticsConstants.FailureReasons.UNKNOWN_ERROR
+        }
+    }
+
+    private fun normalizeDownloadErrorForDownload(message: String?): String {
+        val msg = message?.lowercase() ?: return AnalyticsConstants.FailureReasons.UNKNOWN_ERROR
+        return when {
+            msg.contains("permission") || msg.contains("denied") -> 
+                AnalyticsConstants.FailureReasons.PERMISSION_ERROR
+            msg.contains("network") || msg.contains("connection") || msg.contains("timeout") || msg.contains("host") -> 
+                AnalyticsConstants.FailureReasons.NETWORK_ERROR
+            msg.contains("rename") || msg.contains("space") || msg.contains("storage") || msg.contains("save") || msg.contains("file") -> 
+                AnalyticsConstants.FailureReasons.STORAGE_ERROR
+            msg.contains("download") || msg.contains("exit code") || msg.contains("youtube-dl") || msg.contains("server returned code") -> 
+                AnalyticsConstants.FailureReasons.DOWNLOAD_ERROR
+            else -> 
+                AnalyticsConstants.FailureReasons.UNKNOWN_ERROR
+        }
+    }
+
     fun pauseDownload(songId: String) {
         songDownloader.pauseDownload(songId)
     }
 
     fun cancelDownload(songId: String) {
+        // Log import_cancelled and download_cancelled ONLY for explicit user-initiated cancellations.
+        importAnalyticsTracker.trackDownloadCancelled(songId)
+        importAnalyticsTracker.trackImportCancelled(songId)
         songDownloader.cancelDownload(songId)
     }
 
@@ -192,9 +260,13 @@ class PlayerViewModel @Inject constructor(
                 return@launch
             }
 
+            // Log import started when the import pipeline actually begins
+            importAnalyticsTracker.trackImportStarted(videoId)
+
             // Extract metadata from YouTube
             val info = YoutubeMetadataExtractor.fetchVideoInfo(context, url)
             if (info == null) {
+                importAnalyticsTracker.trackImportFailed(videoId, AnalyticsConstants.FailureReasons.METADATA_ERROR)
                 viewModelScope.launch(Dispatchers.Main) {
                     onError("Failed to extract metadata. Check connection and try again.")
                 }
