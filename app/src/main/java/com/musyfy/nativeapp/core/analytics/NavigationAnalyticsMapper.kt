@@ -6,7 +6,7 @@ object NavigationAnalyticsMapper {
      */
     fun mapRouteToScreenName(routeOrTab: String?): String? {
         return when (routeOrTab) {
-            "splash" -> "Splash"
+            "splash" -> null
             "login" -> "Login"
             "register" -> "Register"
             "forgot_password" -> "ForgotPassword"

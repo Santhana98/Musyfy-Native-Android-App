@@ -4,6 +4,7 @@ import androidx.media3.common.Player
 import com.musyfy.nativeapp.domain.model.Song
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToInt
 
 /**
  * Tracks playback lifecycle events and dispatches them to AnalyticsManager.
@@ -17,8 +18,7 @@ class PlaybackAnalyticsTracker @Inject constructor(
     private enum class TrackerPlaybackState {
         IDLE,
         PLAYING,
-        PAUSED,
-        COMPLETED
+        PAUSED
     }
 
     private var currentSongId: String? = null
@@ -69,41 +69,25 @@ class PlaybackAnalyticsTracker @Inject constructor(
     ) {
         val newSongId = newSong?.id
         if (newSongId != currentSongId) {
-            // Check if it's a skip transition
-            if (oldSong != null) {
-                when {
-                    pendingManualSkipNext -> {
-                        logSongSkipNext(oldSong, oldPositionMs, oldDurationMs, playbackMode)
-                    }
-                    pendingManualSkipPrevious -> {
-                        logSongSkipPrevious(oldSong, oldPositionMs, oldDurationMs, playbackMode)
-                    }
-                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
-                        // MediaSession/Lockscreen/Headset skip seeking
-                        if (currentMediaItemIndex != -1) {
-                            if (newIndex > currentMediaItemIndex) {
-                                logSongSkipNext(oldSong, oldPositionMs, oldDurationMs, playbackMode)
-                            } else if (newIndex < currentMediaItemIndex) {
-                                logSongSkipPrevious(oldSong, oldPositionMs, oldDurationMs, playbackMode)
-                            }
-                        }
-                    }
-                }
-            }
-
             // Reset pending manual flags
             pendingManualSkipNext = false
             pendingManualSkipPrevious = false
 
-            // If previous song was playing, accumulate its final listened duration before resetting
             if (trackerState == TrackerPlaybackState.PLAYING && currentSongId != null) {
                 accumulateListenedDuration()
             }
+            val wasPlaying = trackerState == TrackerPlaybackState.PLAYING
             currentSongId = newSongId
             currentMediaItemIndex = newIndex
-            trackerState = TrackerPlaybackState.IDLE
             accumulatedListenedDurationMs = 0L
             playStartTimestamp = 0L
+
+            if (newSong != null && wasPlaying) {
+                trackerState = TrackerPlaybackState.PLAYING
+                playStartTimestamp = System.currentTimeMillis()
+            } else {
+                trackerState = TrackerPlaybackState.IDLE
+            }
         } else {
             // Index might update even if song ID is same (e.g. reordering active item)
             currentMediaItemIndex = newIndex
@@ -132,19 +116,11 @@ class PlaybackAnalyticsTracker @Inject constructor(
                 TrackerPlaybackState.IDLE -> {
                     trackerState = TrackerPlaybackState.PLAYING
                     playStartTimestamp = System.currentTimeMillis()
-                    logSongPlay(song, durationMs, playbackMode)
                 }
                 TrackerPlaybackState.PAUSED -> {
                     trackerState = TrackerPlaybackState.PLAYING
                     playStartTimestamp = System.currentTimeMillis()
                     logSongResume(song, durationMs, currentPositionMs, playbackMode)
-                }
-                TrackerPlaybackState.COMPLETED -> {
-                    // Track is played again after completion
-                    trackerState = TrackerPlaybackState.PLAYING
-                    accumulatedListenedDurationMs = 0L
-                    playStartTimestamp = System.currentTimeMillis()
-                    logSongPlay(song, durationMs, playbackMode)
                 }
                 TrackerPlaybackState.PLAYING -> {
                     // Already in playing state, discard redundant callback
@@ -157,26 +133,10 @@ class PlaybackAnalyticsTracker @Inject constructor(
                 if (playbackState != Player.STATE_ENDED && playbackState != Player.STATE_IDLE) {
                     trackerState = TrackerPlaybackState.PAUSED
                     logSongPause(song, durationMs, currentPositionMs, playbackMode)
+                } else {
+                    trackerState = TrackerPlaybackState.IDLE
                 }
             }
-        }
-    }
-
-    /**
-     * Responds to natural completion of a song.
-     */
-    @Synchronized
-    fun trackPlaybackCompleted(song: Song, durationMs: Long) {
-        if (song.id != currentSongId) {
-            trackMediaItemTransition(song)
-        }
-
-        if (trackerState != TrackerPlaybackState.COMPLETED) {
-            if (trackerState == TrackerPlaybackState.PLAYING) {
-                accumulateListenedDuration()
-            }
-            trackerState = TrackerPlaybackState.COMPLETED
-            logSongComplete(song, durationMs)
         }
     }
 
@@ -218,23 +178,10 @@ class PlaybackAnalyticsTracker @Inject constructor(
         }
     }
 
-    private fun calculateCompletionPercentage(durationMs: Long): Double {
-        if (durationMs <= 0) return 0.0
+    private fun calculateCompletionPercentage(durationMs: Long): Int {
+        if (durationMs <= 0) return 0
         val percentage = (accumulatedListenedDurationMs.toDouble() / durationMs.toDouble()) * 100.0
-        return percentage.coerceIn(0.0, 100.0)
-    }
-
-    private fun logSongPlay(song: Song, durationMs: Long, playbackMode: String) {
-        val params = mutableMapOf<String, Any>(
-            AnalyticsConstants.Params.SONG_ID to song.id,
-            AnalyticsConstants.Params.SONG_TITLE to song.title,
-            AnalyticsConstants.Params.ARTIST to (song.artist ?: "Unknown Artist"),
-            AnalyticsConstants.Params.DURATION_MS to durationMs,
-            AnalyticsConstants.Params.SOURCE to playbackSourceProvider.getCurrentSource(),
-            AnalyticsConstants.Params.PLAYBACK_MODE to playbackMode
-        )
-        song.imageUrl?.let { params[AnalyticsConstants.Params.ALBUM] = it }
-        analyticsManager.logEvent(AnalyticsEvent(AnalyticsConstants.Events.SONG_PLAY, params))
+        return percentage.roundToInt().coerceIn(0, 100)
     }
 
     private fun logSongResume(song: Song, durationMs: Long, currentPositionMs: Long, playbackMode: String) {
@@ -264,45 +211,5 @@ class PlaybackAnalyticsTracker @Inject constructor(
         )
         song.imageUrl?.let { params[AnalyticsConstants.Params.ALBUM] = it }
         analyticsManager.logEvent(AnalyticsEvent(AnalyticsConstants.Events.SONG_PAUSE, params))
-    }
-
-    private fun logSongComplete(song: Song, durationMs: Long) {
-        val completionPercentage = calculateCompletionPercentage(durationMs)
-        val params = mutableMapOf<String, Any>(
-            AnalyticsConstants.Params.SONG_ID to song.id,
-            AnalyticsConstants.Params.SONG_TITLE to song.title,
-            AnalyticsConstants.Params.ARTIST to (song.artist ?: "Unknown Artist"),
-            AnalyticsConstants.Params.DURATION_MS to durationMs,
-            AnalyticsConstants.Params.LISTENED_DURATION_MS to accumulatedListenedDurationMs,
-            AnalyticsConstants.Params.COMPLETION_PERCENTAGE to completionPercentage
-        )
-        song.imageUrl?.let { params[AnalyticsConstants.Params.ALBUM] = it }
-        analyticsManager.logEvent(AnalyticsEvent(AnalyticsConstants.Events.SONG_COMPLETE, params))
-    }
-
-    private fun logSongSkipNext(song: Song, positionMs: Long, durationMs: Long, playbackMode: String) {
-        val params = mutableMapOf<String, Any>(
-            AnalyticsConstants.Params.SONG_ID to song.id,
-            AnalyticsConstants.Params.SONG_TITLE to song.title,
-            AnalyticsConstants.Params.ARTIST to (song.artist ?: "Unknown Artist"),
-            AnalyticsConstants.Params.CURRENT_POSITION_MS to positionMs,
-            AnalyticsConstants.Params.DURATION_MS to durationMs,
-            AnalyticsConstants.Params.PLAYBACK_MODE to playbackMode
-        )
-        song.imageUrl?.let { params[AnalyticsConstants.Params.ALBUM] = it }
-        analyticsManager.logEvent(AnalyticsEvent(AnalyticsConstants.Events.SONG_SKIP_NEXT, params))
-    }
-
-    private fun logSongSkipPrevious(song: Song, positionMs: Long, durationMs: Long, playbackMode: String) {
-        val params = mutableMapOf<String, Any>(
-            AnalyticsConstants.Params.SONG_ID to song.id,
-            AnalyticsConstants.Params.SONG_TITLE to song.title,
-            AnalyticsConstants.Params.ARTIST to (song.artist ?: "Unknown Artist"),
-            AnalyticsConstants.Params.CURRENT_POSITION_MS to positionMs,
-            AnalyticsConstants.Params.DURATION_MS to durationMs,
-            AnalyticsConstants.Params.PLAYBACK_MODE to playbackMode
-        )
-        song.imageUrl?.let { params[AnalyticsConstants.Params.ALBUM] = it }
-        analyticsManager.logEvent(AnalyticsEvent(AnalyticsConstants.Events.SONG_SKIP_PREVIOUS, params))
     }
 }

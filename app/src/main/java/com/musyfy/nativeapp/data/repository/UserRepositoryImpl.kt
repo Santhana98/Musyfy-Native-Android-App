@@ -53,7 +53,8 @@ class UserRepositoryImpl @Inject constructor(
                 isLoggedIn = true,
                 userName = name,
                 userEmail = email,
-                userPassword = password
+                userPassword = password,
+                sessionStartTimestamp = System.currentTimeMillis()
             )
             preferencesManager.saveAuthState(state)
             Result.success(Unit)
@@ -69,7 +70,10 @@ class UserRepositoryImpl @Inject constructor(
             val storedPassword = currentAuthState.userPassword
 
             if (storedEmail != null && storedEmail.equals(email, ignoreCase = true) && storedPassword == password) {
-                val updatedState = currentAuthState.copy(isLoggedIn = true)
+                val updatedState = currentAuthState.copy(
+                    isLoggedIn = true,
+                    sessionStartTimestamp = System.currentTimeMillis()
+                )
                 preferencesManager.saveAuthState(updatedState)
                 Result.success(Unit)
             } else {

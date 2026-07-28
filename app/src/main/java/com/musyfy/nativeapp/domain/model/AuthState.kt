@@ -4,14 +4,16 @@ data class AuthState(
     val isLoggedIn: Boolean,
     val userName: String?,
     val userEmail: String?,
-    val userPassword: String? // Temporary development password storage
+    val userPassword: String?, // Temporary development password storage
+    val sessionStartTimestamp: Long? = null
 ) {
     companion object {
         val EMPTY = AuthState(
             isLoggedIn = false,
             userName = null,
             userEmail = null,
-            userPassword = null
+            userPassword = null,
+            sessionStartTimestamp = null
         )
     }
 }

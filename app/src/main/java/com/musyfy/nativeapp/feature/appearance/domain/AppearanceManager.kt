@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import kotlinx.coroutines.flow.first
+
 @Singleton
 class AppearanceManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -67,19 +69,19 @@ class AppearanceManager @Inject constructor(
         }
 
         scope.launch(Dispatchers.Default) {
-            state.collect { appearanceState ->
-                settingsAnalyticsTracker.trackThemeChanged(appearanceState.themeMode)
-                settingsAnalyticsTracker.trackPlayerModeChanged(appearanceState.playerBackgroundMode)
-                settingsAnalyticsTracker.trackWallpaperChanged(
-                    appearanceState.customWallpaperPath,
-                    appearanceState.wallpaperVersion
-                )
-                settingsAnalyticsTracker.trackAccentChanged(appearanceState.accentMode)
-            }
+            val initial = appearancePrefs.appearanceState.first()
+            settingsAnalyticsTracker.trackThemeChanged(initial.themeMode)
+            settingsAnalyticsTracker.trackPlayerModeChanged(initial.playerBackgroundMode)
+            settingsAnalyticsTracker.trackWallpaperChanged(
+                initial.customWallpaperPath,
+                initial.wallpaperVersion
+            )
+            settingsAnalyticsTracker.trackAccentChanged(initial.accentMode)
         }
     }
 
     fun updateState(newState: AppearanceState) {
+        val oldState = state.value
         scope.launch {
             appearancePrefs.saveAppearanceState(newState)
             if (newState.themeMode == ThemeMode.X) {
@@ -88,19 +90,37 @@ class AppearanceManager @Inject constructor(
                 preferencesManager.saveTheme("female")
             }
         }
+        if (newState.themeMode != oldState.themeMode) {
+            settingsAnalyticsTracker.trackThemeChanged(newState.themeMode)
+        }
+        if (newState.playerBackgroundMode != oldState.playerBackgroundMode) {
+            settingsAnalyticsTracker.trackPlayerModeChanged(newState.playerBackgroundMode)
+        }
+        if (newState.accentMode != oldState.accentMode) {
+            settingsAnalyticsTracker.trackAccentChanged(newState.accentMode)
+        }
     }
 
     fun saveCustomWallpaper(bitmap: Bitmap) {
         scope.launch(Dispatchers.IO) {
             val file = WallpaperProcessor.processAndSaveWallpaper(context, bitmap)
             if (file != null) {
-                val newState = state.value.copy(
+                val oldState = state.value
+                val newState = oldState.copy(
                     themeMode = ThemeMode.CUSTOM,
                     customWallpaperPath = file.absolutePath,
                     wallpaperVersion = System.currentTimeMillis()
                 )
                 appearancePrefs.saveAppearanceState(newState)
                 preferencesManager.saveTheme("male")
+
+                if (newState.themeMode != oldState.themeMode) {
+                    settingsAnalyticsTracker.trackThemeChanged(newState.themeMode)
+                }
+                settingsAnalyticsTracker.trackWallpaperChanged(
+                    newState.customWallpaperPath,
+                    newState.wallpaperVersion
+                )
             }
         }
     }
@@ -114,13 +134,22 @@ class AppearanceManager @Inject constructor(
                     file.delete()
                 }
             }
-            val newState = state.value.copy(
+            val oldState = state.value
+            val newState = oldState.copy(
                 themeMode = ThemeMode.X,
                 customWallpaperPath = null,
                 wallpaperVersion = System.currentTimeMillis()
             )
             appearancePrefs.saveAppearanceState(newState)
             preferencesManager.saveTheme("male")
+
+            if (newState.themeMode != oldState.themeMode) {
+                settingsAnalyticsTracker.trackThemeChanged(newState.themeMode)
+            }
+            settingsAnalyticsTracker.trackWallpaperChanged(
+                newState.customWallpaperPath,
+                newState.wallpaperVersion
+            )
         }
     }
 

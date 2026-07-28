@@ -14,6 +14,7 @@ class FirebaseAnalyticsManager @Inject constructor(
     private val firebaseAnalytics = FirebaseAnalytics.getInstance(context)
 
     override fun logEvent(event: AnalyticsEvent) {
+        android.util.Log.d("ListeningSessionDebug", "FirebaseAnalyticsManager.logEvent: name=${event.name}, params=${event.params}")
         val bundle = Bundle().apply {
             event.params.forEach { (key, value) ->
                 when (value) {

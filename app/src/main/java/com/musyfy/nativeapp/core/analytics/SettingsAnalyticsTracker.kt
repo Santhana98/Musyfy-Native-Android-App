@@ -68,7 +68,7 @@ class SettingsAnalyticsTracker @Inject constructor(
      */
     @Synchronized
     fun trackWallpaperChanged(path: String?, version: Long) {
-        if (lastThemeMode == null) {
+        if (lastWallpaperVersion == null) {
             // Initial load of settings, just record the state
             lastWallpaperPath = path
             lastWallpaperVersion = version

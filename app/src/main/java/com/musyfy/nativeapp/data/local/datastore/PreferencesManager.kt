@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.musyfy.nativeapp.common.Constants
 import com.musyfy.nativeapp.domain.model.AuthState
@@ -21,13 +22,15 @@ class PreferencesManager @Inject constructor(
     private val userNameKey = stringPreferencesKey("user_name")
     private val isLoggedInKey = booleanPreferencesKey("is_logged_in")
     private val userPasswordKey = stringPreferencesKey("user_password") // Temporary development password storage
+    private val sessionStartTimestampKey = longPreferencesKey("session_start_timestamp")
 
     val authState: Flow<AuthState> = dataStore.data.map { preferences ->
         AuthState(
             isLoggedIn = preferences[isLoggedInKey] ?: false,
             userName = preferences[userNameKey],
             userEmail = preferences[userEmailKey],
-            userPassword = preferences[userPasswordKey]
+            userPassword = preferences[userPasswordKey],
+            sessionStartTimestamp = preferences[sessionStartTimestampKey]
         )
     }
 
@@ -61,6 +64,13 @@ class PreferencesManager @Inject constructor(
             } else {
                 preferences.remove(userPasswordKey)
             }
+            if (state.sessionStartTimestamp != null) {
+                preferences[sessionStartTimestampKey] = state.sessionStartTimestamp
+            } else if (state.isLoggedIn && preferences[sessionStartTimestampKey] == null) {
+                preferences[sessionStartTimestampKey] = System.currentTimeMillis()
+            } else if (!state.isLoggedIn) {
+                preferences.remove(sessionStartTimestampKey)
+            }
         }
     }
 
@@ -68,6 +78,7 @@ class PreferencesManager @Inject constructor(
         dataStore.edit { preferences ->
             preferences[isLoggedInKey] = false
             preferences.remove(sessionTokenKey)
+            preferences.remove(sessionStartTimestampKey)
         }
     }
 

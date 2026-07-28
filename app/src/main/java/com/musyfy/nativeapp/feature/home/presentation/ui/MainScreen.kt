@@ -206,7 +206,10 @@ fun MainScreen(
                     onLogoutClick = {
                         if (!isLoggingOut) {
                             isLoggingOut = true
-                            authViewModel.logout(onLogout)
+                            authViewModel.logout(
+                                logoutSource = com.musyfy.nativeapp.core.analytics.AnalyticsConstants.Auth.LOGOUT_SOURCE_HOME_PROFILE,
+                                onSuccess = onLogout
+                            )
                         }
                     },
                     modifier = Modifier

@@ -6,6 +6,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.musyfy.nativeapp.MainActivity
+import com.musyfy.nativeapp.core.analytics.ListeningAnalyticsTracker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -14,6 +15,9 @@ class PlayerService : MediaSessionService() {
 
     @Inject
     lateinit var player: ExoPlayer
+
+    @Inject
+    lateinit var listeningAnalyticsTracker: ListeningAnalyticsTracker
 
     private var mediaSession: MediaSession? = null
 
@@ -60,6 +64,7 @@ class PlayerService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        listeningAnalyticsTracker.onSessionEnded()
         mediaSession?.let {
             removeSession(it)
             it.release()

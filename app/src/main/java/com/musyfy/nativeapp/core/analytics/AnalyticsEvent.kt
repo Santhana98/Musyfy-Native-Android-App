@@ -120,5 +120,121 @@ data class AnalyticsEvent(
                 params = mapOf(AnalyticsConstants.Params.ACCENT_SOURCE to source)
             )
         }
+
+        fun songListened(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            durationSeconds: Long,
+            songLength: Long,
+            completionPercent: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SONG_LISTENED,
+                params = mapOf(
+                    AnalyticsConstants.Params.SONG_ID to songId,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist,
+                    AnalyticsConstants.Params.DURATION_SECONDS to durationSeconds,
+                    AnalyticsConstants.Params.SONG_LENGTH to songLength,
+                    AnalyticsConstants.Params.COMPLETION_PERCENT to completionPercent
+                )
+            )
+        }
+
+        fun songThreshold(
+            eventName: String,
+            songId: String,
+            songTitle: String,
+            artist: String,
+            durationSeconds: Long,
+            songLength: Long,
+            completionPercentage: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = eventName,
+                params = mapOf(
+                    AnalyticsConstants.Params.SONG_ID to songId,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist,
+                    AnalyticsConstants.Params.DURATION_SECONDS to durationSeconds,
+                    AnalyticsConstants.Params.SONG_LENGTH to songLength,
+                    AnalyticsConstants.Params.COMPLETION_PERCENTAGE to completionPercentage
+                )
+            )
+        }
+
+        fun songSkipped(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            playedSeconds: Long,
+            songLength: Long,
+            completionPercentage: Int,
+            skipReason: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SONG_SKIPPED,
+                params = mapOf(
+                    AnalyticsConstants.Params.SONG_ID to songId,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist,
+                    AnalyticsConstants.Params.PLAYED_SECONDS to playedSeconds,
+                    AnalyticsConstants.Params.SONG_LENGTH to songLength,
+                    AnalyticsConstants.Params.COMPLETION_PERCENTAGE to completionPercentage,
+                    AnalyticsConstants.Params.SKIP_REASON to skipReason
+                )
+            )
+        }
+
+        fun listeningSession(
+            sessionDurationSeconds: Long,
+            totalListeningSeconds: Long,
+            songsPlayed: Int,
+            songsCompleted: Int,
+            songsSkipped: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.LISTENING_SESSION,
+                params = mapOf(
+                    AnalyticsConstants.Params.SESSION_DURATION_SECONDS to sessionDurationSeconds,
+                    AnalyticsConstants.Params.TOTAL_LISTENING_SECONDS to totalListeningSeconds,
+                    AnalyticsConstants.Params.SONGS_PLAYED to songsPlayed,
+                    AnalyticsConstants.Params.SONGS_COMPLETED to songsCompleted,
+                    AnalyticsConstants.Params.SONGS_SKIPPED to songsSkipped
+                )
+            )
+        }
+
+        fun login(
+            method: String = AnalyticsConstants.Auth.METHOD_LOCAL,
+            loginSource: String = AnalyticsConstants.Auth.LOGIN_SOURCE_LOGIN_SCREEN
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.LOGIN,
+                params = mapOf(
+                    AnalyticsConstants.Params.METHOD to method,
+                    AnalyticsConstants.Params.LOGIN_SOURCE to loginSource
+                )
+            )
+        }
+
+        fun logout(
+            logoutSource: String,
+            method: String = AnalyticsConstants.Auth.METHOD_LOCAL,
+            sessionDurationSeconds: Long? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.METHOD to method,
+                AnalyticsConstants.Params.LOGOUT_SOURCE to logoutSource
+            )
+            if (sessionDurationSeconds != null && sessionDurationSeconds >= 0) {
+                params[AnalyticsConstants.Params.SESSION_DURATION_SECONDS] = sessionDurationSeconds
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.LOGOUT,
+                params = params
+            )
+        }
     }
 }

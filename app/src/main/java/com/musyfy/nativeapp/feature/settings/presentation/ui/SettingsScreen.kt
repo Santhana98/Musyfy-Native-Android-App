@@ -223,7 +223,12 @@ fun SettingsScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                         .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                        .clickable { viewModel.logout(onLogout) }
+                        .clickable {
+                            viewModel.logout(
+                                logoutSource = com.musyfy.nativeapp.core.analytics.AnalyticsConstants.Auth.LOGOUT_SOURCE_SETTINGS,
+                                onSuccess = onLogout
+                            )
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

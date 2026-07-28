@@ -1,6 +1,7 @@
 package com.musyfy.nativeapp
 
 import android.app.Application
+import com.musyfy.nativeapp.core.analytics.AppLifecycleTracker
 import com.musyfy.nativeapp.core.analytics.AnalyticsEvent
 import com.musyfy.nativeapp.core.analytics.AnalyticsManager
 import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
@@ -17,13 +18,14 @@ class MusyfyApplication : Application() {
     @Inject
     lateinit var analyticsManager: AnalyticsManager
 
+    @Inject
+    lateinit var appLifecycleTracker: AppLifecycleTracker
+
     override fun onCreate() {
         super.onCreate()
         
-        // Log the custom app_open event once on launch
-        analyticsManager.logEvent(
-            AnalyticsEvent(name = AnalyticsConstants.Events.APP_OPEN)
-        )
+        // Delegate app_open tracking to AppLifecycleTracker (ensures app_open fires exactly once)
+        appLifecycleTracker.trackAppOpen()
 
         // Set environment User Properties once on launch
         val deviceModel = android.os.Build.MODEL

@@ -56,7 +56,12 @@ class AuthViewModel @Inject constructor(
             _uiState.value = AuthUiState.Loading
             val result = loginUseCase(email, password)
             if (result.isSuccess) {
-                analyticsManager.logEvent(AnalyticsEvent(name = AnalyticsConstants.Events.LOGIN))
+                analyticsManager.logEvent(
+                    AnalyticsEvent.login(
+                        method = AnalyticsConstants.Auth.METHOD_LOCAL,
+                        loginSource = AnalyticsConstants.Auth.LOGIN_SOURCE_LOGIN_SCREEN
+                    )
+                )
                 _uiState.value = AuthUiState.Success
                 onSuccess()
             } else {
@@ -91,13 +96,24 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun logout(onSuccess: () -> Unit) {
+    fun logout(logoutSource: String = AnalyticsConstants.Auth.LOGOUT_SOURCE_HOME_PROFILE, onSuccess: () -> Unit) {
         if (_uiState.value is AuthUiState.Loading) return
+        val sessionStart = authState.value.sessionStartTimestamp
+        val sessionDurationSeconds = if (sessionStart != null && sessionStart > 0) {
+            kotlin.math.max(0L, (System.currentTimeMillis() - sessionStart) / 1000)
+        } else null
+
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
             val result = logoutUseCase()
             if (result.isSuccess) {
-                analyticsManager.logEvent(AnalyticsEvent(name = AnalyticsConstants.Events.LOGOUT))
+                analyticsManager.logEvent(
+                    AnalyticsEvent.logout(
+                        logoutSource = logoutSource,
+                        method = AnalyticsConstants.Auth.METHOD_LOCAL,
+                        sessionDurationSeconds = sessionDurationSeconds
+                    )
+                )
                 _uiState.value = AuthUiState.Idle
                 onSuccess()
             } else {

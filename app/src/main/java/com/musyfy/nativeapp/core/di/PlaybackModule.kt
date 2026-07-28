@@ -9,6 +9,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import com.musyfy.nativeapp.MainActivity
 import com.musyfy.nativeapp.core.analytics.PlaybackAnalyticsTracker
+import com.musyfy.nativeapp.core.analytics.ListeningAnalyticsTracker
 import com.musyfy.nativeapp.core.playback.PlayerManager
 import com.musyfy.nativeapp.core.playback.PlayerManagerImpl
 import com.musyfy.nativeapp.domain.repository.SongRepository
@@ -52,8 +53,15 @@ object PlaybackModule {
         player: ExoPlayer,
         songRepository: SongRepository,
         @ApplicationContext context: Context,
-        playbackAnalyticsTracker: PlaybackAnalyticsTracker
+        playbackAnalyticsTracker: PlaybackAnalyticsTracker,
+        listeningAnalyticsTracker: ListeningAnalyticsTracker
     ): PlayerManager {
-        return PlayerManagerImpl(player, songRepository, context, playbackAnalyticsTracker)
+        return PlayerManagerImpl(
+            exoPlayer = player,
+            songRepository = songRepository,
+            context = context,
+            playbackAnalyticsTracker = playbackAnalyticsTracker,
+            listeningAnalyticsTracker = listeningAnalyticsTracker
+        )
     }
 }

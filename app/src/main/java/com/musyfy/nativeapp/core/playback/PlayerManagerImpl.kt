@@ -18,6 +18,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.musyfy.nativeapp.core.analytics.PlaybackAnalyticsTracker
+import com.musyfy.nativeapp.core.analytics.ListeningAnalyticsTracker
+import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -30,7 +32,8 @@ class PlayerManagerImpl @Inject constructor(
     private val exoPlayer: ExoPlayer,
     private val songRepository: SongRepository,
     @param:ApplicationContext private val context: Context,
-    private val playbackAnalyticsTracker: PlaybackAnalyticsTracker
+    private val playbackAnalyticsTracker: PlaybackAnalyticsTracker,
+    private val listeningAnalyticsTracker: ListeningAnalyticsTracker
 ) : PlayerManager {
 
     companion object {
@@ -52,6 +55,7 @@ class PlayerManagerImpl @Inject constructor(
     override val playbackUiState: StateFlow<PlaybackUiState> = _playbackUiState.asStateFlow()
 
     private var progressJob: Job? = null
+    private var pendingPlaySongReason: String? = null
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -72,12 +76,14 @@ class PlayerManagerImpl @Inject constructor(
                     currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
                 )
             }
+            listeningAnalyticsTracker.onPlaybackStateChanged(
+                isPlaying = isPlaying,
+                playbackState = playbackState,
+                durationMs = exoPlayer.duration.coerceAtLeast(0L)
+            )
             val currentSong = _playbackUiState.value.currentSong
             if (playbackState == Player.STATE_ENDED && currentSong != null) {
-                playbackAnalyticsTracker.trackPlaybackCompleted(
-                    song = currentSong,
-                    durationMs = exoPlayer.duration.coerceAtLeast(0L)
-                )
+                listeningAnalyticsTracker.onSessionEnded()
             }
             if (isPlaying) {
                 startProgressUpdate()
@@ -95,6 +101,11 @@ class PlayerManagerImpl @Inject constructor(
                     playbackSessionActive = if (isPlaying) true else it.playbackSessionActive
                 )
             }
+            listeningAnalyticsTracker.onPlaybackStateChanged(
+                isPlaying = isPlaying,
+                playbackState = exoPlayer.playbackState,
+                durationMs = exoPlayer.duration.coerceAtLeast(0L)
+            )
             val currentSong = _playbackUiState.value.currentSong
             if (currentSong != null) {
                 val playbackMode = when {
@@ -134,7 +145,8 @@ class PlayerManagerImpl @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            android.util.Log.d("MusyfyPlayback", "PlayerManager: onMediaItemTransition: MediaItem ID=${mediaItem?.mediaId}, URI=${mediaItem?.localConfiguration?.uri}")
+            val isPlaying = exoPlayer.isPlaying && exoPlayer.playbackState == Player.STATE_READY
+            android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRANSITION] PlayerManager: onMediaItemTransition called. MediaItem ID=${mediaItem?.mediaId}, reason=$reason, playerIsPlaying=$isPlaying")
             
             val oldSong = _playbackUiState.value.currentSong
             val oldPositionMs = _playbackUiState.value.currentPositionMs
@@ -147,6 +159,18 @@ class PlayerManagerImpl @Inject constructor(
             }
 
             if (mediaItem == null) {
+                if (oldSong != null && reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    val skipReason = pendingPlaySongReason ?: AnalyticsConstants.SkipReasons.QUEUE_CHANGE
+                    pendingPlaySongReason = null
+                    listeningAnalyticsTracker.setPendingSkipReason(skipReason)
+                }
+                android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRANSITION] PlayerManager: mediaItem is null, finalizing previous song")
+                listeningAnalyticsTracker.onMediaItemTransition(
+                    newSong = null,
+                    newDurationMs = 0L,
+                    transitionReason = reason,
+                    isPlaying = isPlaying
+                )
                 _playbackUiState.update {
                     it.copy(
                         currentSong = null,
@@ -163,28 +187,68 @@ class PlayerManagerImpl @Inject constructor(
                     playbackMode = playbackMode
                 )
             } else {
-                coroutineScope.launch {
-                    val allSongs = songRepository.getSongs().first()
-                    val song = allSongs.find { it.id == mediaItem.mediaId } ?: SongMapper.toSong(mediaItem)
-                    val newIndex = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
-                    android.util.Log.d("MusyfyPlayback", "PlayerManager: Resolved active Song: ID=${song.id}, Title=${song.title}, audioPath=${song.audioPath}")
-                    _playbackUiState.update {
-                        it.copy(
-                            currentSong = song,
-                            currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
-                            durationMs = exoPlayer.duration.coerceAtLeast(0L)
-                        )
+                val currentQueue = _playbackUiState.value.queue
+                val song = currentQueue.find { it.id == mediaItem.mediaId } ?: SongMapper.toSong(mediaItem)
+                val newIndex = currentQueue.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRANSITION] PlayerManager: Resolved active Song synchronously: ID=${song.id}, Title=${song.title}, isPlaying=$isPlaying")
+                
+                if (oldSong != null && song.id != oldSong.id) {
+                    val skipReason = when {
+                        pendingPlaySongReason != null -> {
+                            val r = pendingPlaySongReason
+                            pendingPlaySongReason = null
+                            r
+                        }
+                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
+                            null
+                        }
+                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK -> {
+                            val oldIndex = currentQueue.indexOfFirst { it.id == oldSong.id }
+                            if (oldIndex != -1) {
+                                if (newIndex > oldIndex || (oldIndex == currentQueue.size - 1 && newIndex == 0)) {
+                                    AnalyticsConstants.SkipReasons.NEXT_BUTTON
+                                } else {
+                                    AnalyticsConstants.SkipReasons.PREVIOUS_BUTTON
+                                }
+                            } else {
+                                AnalyticsConstants.SkipReasons.NEXT_BUTTON
+                            }
+                        }
+                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED -> {
+                            AnalyticsConstants.SkipReasons.QUEUE_CHANGE
+                        }
+                        else -> {
+                            AnalyticsConstants.SkipReasons.SONG_SELECTED
+                        }
                     }
-                    playbackAnalyticsTracker.trackMediaItemTransition(
-                        newSong = song,
-                        newIndex = newIndex,
-                        reason = reason,
-                        oldSong = oldSong,
-                        oldPositionMs = oldPositionMs,
-                        oldDurationMs = oldDurationMs,
-                        playbackMode = playbackMode
+                    if (skipReason != null) {
+                        listeningAnalyticsTracker.setPendingSkipReason(skipReason)
+                    }
+                }
+                pendingPlaySongReason = null
+
+                _playbackUiState.update {
+                    it.copy(
+                        currentSong = song,
+                        currentPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+                        durationMs = exoPlayer.duration.coerceAtLeast(0L)
                     )
                 }
+                playbackAnalyticsTracker.trackMediaItemTransition(
+                    newSong = song,
+                    newIndex = newIndex,
+                    reason = reason,
+                    oldSong = oldSong,
+                    oldPositionMs = oldPositionMs,
+                    oldDurationMs = oldDurationMs,
+                    playbackMode = playbackMode
+                )
+                listeningAnalyticsTracker.onMediaItemTransition(
+                    newSong = song,
+                    newDurationMs = exoPlayer.duration.coerceAtLeast(0L),
+                    transitionReason = reason,
+                    isPlaying = isPlaying
+                )
             }
         }
 
@@ -258,16 +322,21 @@ class PlayerManagerImpl @Inject constructor(
                 if (currentIndex != -1 && targetIndex != -1) {
                     if (targetIndex == currentIndex + 1 || (currentIndex == currentQueue.size - 1 && targetIndex == 0)) {
                         playbackAnalyticsTracker.notifyManualSkipRequested(isNext = true)
+                        pendingPlaySongReason = AnalyticsConstants.SkipReasons.NEXT_BUTTON
                     } else if (targetIndex == currentIndex - 1 || (currentIndex == 0 && targetIndex == currentQueue.size - 1)) {
                         playbackAnalyticsTracker.notifyManualSkipRequested(isNext = false)
+                        pendingPlaySongReason = AnalyticsConstants.SkipReasons.PREVIOUS_BUTTON
                     } else {
                         playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+                        pendingPlaySongReason = AnalyticsConstants.SkipReasons.SONG_SELECTED
                     }
                 } else {
                     playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+                    pendingPlaySongReason = AnalyticsConstants.SkipReasons.SONG_SELECTED
                 }
             } else {
                 playbackAnalyticsTracker.notifyNewPlaybackSessionRequested()
+                pendingPlaySongReason = null
             }
 
             // Load all songs, checking for local files first (m4a/mp3/artwork)
@@ -438,6 +507,7 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun release() {
         coroutineScope.launch {
+            listeningAnalyticsTracker.onSessionEnded()
             stopProgressUpdate()
             exoPlayer.removeListener(listener)
             exoPlayer.release()
@@ -470,6 +540,7 @@ class PlayerManagerImpl @Inject constructor(
                 _playbackUiState.value.currentSong?.let { song ->
                     savePlaybackState(song.id, currentPos)
                 }
+                listeningAnalyticsTracker.onProgressUpdate(currentPos, duration)
                 delay(500)
             }
         }
@@ -495,6 +566,7 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun dismissPlaybackSession() {
         coroutineScope.launch {
+            listeningAnalyticsTracker.onSessionEnded()
             if (!_playbackUiState.value.isPlaying) {
                 saveSessionActiveState(false)
                 _playbackUiState.update {

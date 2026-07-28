@@ -38,6 +38,7 @@ import com.musyfy.nativeapp.feature.home.presentation.ui.SwipeToRevealSongRow
 import com.musyfy.nativeapp.feature.player.presentation.PlayerViewModel
 import com.musyfy.nativeapp.feature.playlist.presentation.PlaylistViewModel
 import com.musyfy.nativeapp.core.ui.components.SongOptionsBottomSheet
+import com.musyfy.nativeapp.core.ui.components.PremiumThemeBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,31 +74,10 @@ fun PlaylistDetailScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
 
-    Box(
+    PremiumThemeBackground(
+        themeState = "",
         modifier = modifier.fillMaxSize()
     ) {
-        // Theme Background Image
-        Image(
-            painter = painterResource(id = R.drawable.bg_male),
-            contentDescription = "Theme Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        // Linear Gradient Overlay mimicking globals.css (darker for superior contrast and readability)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xAA000000), // 66% opacity black at the top
-                            Color(0xFB070708), // 98% opacity of base color
-                            Color(0xFF070708)  // Solid base color
-                        )
-                    )
-                )
-        )
 
         if (isSelectionMode) {
             Row(
@@ -367,8 +347,6 @@ fun PlaylistDetailScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(100.dp)) // Mini Player Padding
         }
         SnackbarHost(
             hostState = snackbarHostState,
