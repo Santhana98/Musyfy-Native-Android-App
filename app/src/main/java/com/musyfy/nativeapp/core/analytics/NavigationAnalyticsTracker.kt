@@ -12,15 +12,28 @@ class NavigationAnalyticsTracker @Inject constructor(
 
     /**
      * Logs the screen view event if it represents a genuine navigation transition (i.e. different from the last logged screen).
+     * Automatically includes previous_screen and optional screen_category.
      */
-    fun logScreenView(screenName: String) {
+    fun logScreenView(screenName: String, category: String? = null) {
         synchronized(this) {
             if (screenName != lastLoggedScreen) {
+                val previousScreen = lastLoggedScreen
                 lastLoggedScreen = screenName
-                analyticsManager.logEvent(AnalyticsEvent.screenView(screenName))
+                analyticsManager.logEvent(
+                    AnalyticsEvent.screenView(
+                        screenName = screenName,
+                        previousScreen = previousScreen,
+                        screenCategory = category
+                    )
+                )
             }
         }
     }
+
+    /**
+     * Returns the currently active logged screen.
+     */
+    fun getCurrentScreen(): String? = synchronized(this) { lastLoggedScreen }
 
     /**
      * Resets the tracker memory if needed.

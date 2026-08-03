@@ -13,7 +13,8 @@ import kotlin.math.roundToInt
  */
 @Singleton
 class ListeningAnalyticsTracker @Inject constructor(
-    private val analyticsManager: AnalyticsManager
+    private val analyticsManager: AnalyticsManager,
+    private val playbackSourceProvider: PlaybackSourceProvider? = null
 ) {
     /**
      * Injectable/overridable time provider for unit testing.
@@ -37,6 +38,7 @@ class ListeningAnalyticsTracker @Inject constructor(
     private var sessionSongsCompleted = 0
     private var sessionSongsSkipped = 0
     private var hasCountedPlayForCurrentSong = false
+    private var hasFiredSongPlayForCurrentSong = false
 
     @Synchronized
     fun setPendingSkipReason(reason: String) {
@@ -137,6 +139,7 @@ class ListeningAnalyticsTracker @Inject constructor(
                     hasCountedPlayForCurrentSong = true
                     sessionSongsPlayed++
                 }
+                checkAndEmitSongPlay(transitionReason)
                 android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRACKER] Tracker initialized with active playback. isPlayingActive=true, playingStartTimestamp=$playingStartTimestamp")
             } else {
                 android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRACKER] Tracker initialized with inactive playback.")
@@ -150,10 +153,38 @@ class ListeningAnalyticsTracker @Inject constructor(
             isPlayingActive = false
             firedThresholds.clear()
             hasCountedPlayForCurrentSong = false
+            hasFiredSongPlayForCurrentSong = false
             onSessionEnded()
         }
 
         pendingSkipReason = null
+    }
+
+    private fun checkAndEmitSongPlay(transitionReason: Int = -1) {
+        val song = currentSong ?: return
+        if (!hasFiredSongPlayForCurrentSong) {
+            hasFiredSongPlayForCurrentSong = true
+            val durationSeconds = if (totalSongDurationMs > 0L) totalSongDurationMs / 1000L else song.durationMs / 1000L
+            val source = playbackSourceProvider?.getCurrentSource() ?: "android_native"
+            val playSource = if (transitionReason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                "AutoNext"
+            } else {
+                playbackSourceProvider?.getCurrentPlaySource() ?: "unknown"
+            }
+            val playlistId = playbackSourceProvider?.getPlaylistId()
+
+            val songPlayEvent = AnalyticsEvent.songPlay(
+                songId = song.id,
+                songTitle = song.title,
+                artist = song.artist ?: "Unknown Artist",
+                durationSeconds = durationSeconds,
+                source = source,
+                playSource = playSource,
+                playlistId = playlistId
+            )
+            android.util.Log.d("ListeningAnalyticsTracker", "[DEBUG-TRACKER] Emitting song_play: event=$songPlayEvent")
+            analyticsManager.logEvent(songPlayEvent)
+        }
     }
 
     private fun finalizeCurrentSong(
@@ -249,6 +280,7 @@ class ListeningAnalyticsTracker @Inject constructor(
                 hasCountedPlayForCurrentSong = true
                 sessionSongsPlayed++
             }
+            checkAndEmitSongPlay()
         }
 
         if (shouldBePlayingActive && !isPlayingActive) {
@@ -285,6 +317,7 @@ class ListeningAnalyticsTracker @Inject constructor(
                 hasCountedPlayForCurrentSong = true
                 sessionSongsPlayed++
             }
+            checkAndEmitSongPlay()
             val now = timeProvider()
             val elapsed = now - playingStartTimestamp
             if (elapsed > 0L) {
@@ -307,6 +340,7 @@ class ListeningAnalyticsTracker @Inject constructor(
         isPlayingActive = false
         firedThresholds.clear()
         hasCountedPlayForCurrentSong = false
+        hasFiredSongPlayForCurrentSong = false
     }
 
     private fun accumulateCurrentInterval() {

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface PlayerManager {
     val playbackUiState: StateFlow<PlaybackUiState>
 
-    fun playSong(song: Song)
+    fun playSong(song: Song, customQueue: List<Song>? = null)
     fun play()
     fun pause()
     fun seekTo(positionMs: Long)

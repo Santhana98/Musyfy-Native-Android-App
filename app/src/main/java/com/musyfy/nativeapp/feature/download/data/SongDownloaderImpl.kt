@@ -8,8 +8,10 @@ import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +20,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -36,6 +40,9 @@ class SongDownloaderImpl @Inject constructor(
     
     // Concurrent map to keep track of active download jobs
     private val activeJobs = ConcurrentHashMap<String, Job>()
+
+    // Centralized Semaphore capping max concurrent active downloads to 3
+    private val downloadSemaphore = Semaphore(3)
     
     // In-memory cache of download statuses to expose state flows easily
     private val _downloadStatuses = MutableStateFlow<Map<String, DownloadStatus>>(emptyMap())
@@ -45,13 +52,34 @@ class SongDownloaderImpl @Inject constructor(
         // Initialize statuses from existing files in filesDir
         val files = context.filesDir.listFiles()
         val initialMap = mutableMapOf<String, DownloadStatus>()
+        val downloadedIds = mutableSetOf<String>()
         files?.forEach { file ->
             if ((file.name.endsWith(".mp3") || file.name.endsWith(".m4a")) && file.length() > 0) {
                 val songId = file.name.substringBeforeLast(".")
                 initialMap[songId] = DownloadStatus.Downloaded(file.absolutePath)
+                downloadedIds.add(songId)
             }
         }
         _downloadStatuses.value = initialMap
+
+        // Asynchronous storage cleanup routine on IO thread (removes orphaned .tmp and .jpg files)
+        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            try {
+                context.filesDir.listFiles()?.forEach { file ->
+                    val name = file.name
+                    if (name.endsWith(".tmp")) {
+                        file.delete()
+                    } else if (name.endsWith(".jpg")) {
+                        val songId = name.removeSuffix(".jpg")
+                        if (!downloadedIds.contains(songId)) {
+                            file.delete()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore cleanup errors
+            }
+        }
     }
 
     override fun getDownloadStatus(songId: String): Flow<DownloadStatus> = flow {
@@ -63,6 +91,12 @@ class SongDownloaderImpl @Inject constructor(
 
     override fun downloadSong(song: Song): Flow<DownloadStatus> = flow {
         val songId = song.id
+        val currentStatus = _downloadStatuses.value[songId]
+        if (currentStatus is DownloadStatus.Downloading || currentStatus is DownloadStatus.Downloaded) {
+            if (currentStatus != null) emit(currentStatus)
+            return@flow
+        }
+
         val isYoutube = song.url.contains("youtube.com") || song.url.contains("youtu.be") || song.url.contains("youtube")
         
         val tempFile = File(context.filesDir, if (isYoutube) "$songId.m4a.tmp" else "$songId.mp3.tmp")
@@ -72,139 +106,140 @@ class SongDownloaderImpl @Inject constructor(
         val finalAudioPath = repositorySong?.audioPath ?: destFile.absolutePath
         val audioFile = File(finalAudioPath)
         if (audioFile.exists() && audioFile.length() > 0) {
-            emit(DownloadStatus.Downloaded(audioFile.absolutePath))
+            val downloadedStatus = DownloadStatus.Downloaded(audioFile.absolutePath)
+            _downloadStatuses.update { it + (songId to downloadedStatus) }
+            emit(downloadedStatus)
             return@flow
         }
 
-        emit(DownloadStatus.Downloading(0f))
-        _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(0f)) }
+        downloadSemaphore.withPermit {
+            emit(DownloadStatus.Downloading(0f))
+            _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(0f)) }
 
-        try {
-            if (isYoutube) {
-                // Initialize YoutubeDL
-                YoutubeDL.getInstance().init(context)
-                
-                val request = YoutubeDLRequest(song.url).apply {
-                    addOption("-f", "ba[ext=m4a]/bestaudio")
-                    addOption("-o", tempFile.absolutePath)
-                }
-                
-                val response = YoutubeDL.getInstance().execute(request) { progress, _, _ ->
-                    val fraction = progress / 100f
-                    _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(fraction)) }
-                }
-                
-                if (response.exitCode == 0 && tempFile.exists() && tempFile.length() > 0) {
-                    // Download artwork locally too
-                    downloadArtworkLocally(song.imageUrl, songId)
+            try {
+                if (isYoutube) {
+                    val request = YoutubeDLRequest(song.url).apply {
+                        addOption("-f", "ba[ext=m4a]/bestaudio")
+                        addOption("-o", tempFile.absolutePath)
+                    }
                     
-                    if (tempFile.renameTo(destFile)) {
-                        val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
-                        val artworkFile = File(context.filesDir, "$songId.jpg")
-                        val updatedSong = currentSong.copy(
-                            audioPath = destFile.absolutePath,
-                            artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
-                        )
-                        songRepository.addSong(updatedSong)
+                    val response = YoutubeDL.getInstance().execute(request) { progress, _, _ ->
+                        val fraction = progress / 100f
+                        _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(fraction)) }
+                    }
+                    
+                    if (response.exitCode == 0 && tempFile.exists() && tempFile.length() > 0) {
+                        // Download artwork locally too
+                        downloadArtworkLocally(song.imageUrl, songId)
+                        
+                        if (tempFile.renameTo(destFile)) {
+                            val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
+                            val artworkFile = File(context.filesDir, "$songId.jpg")
+                            val updatedSong = currentSong.copy(
+                                audioPath = destFile.absolutePath,
+                                artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
+                            )
+                            songRepository.addSong(updatedSong)
 
-                        emit(DownloadStatus.Downloaded(destFile.absolutePath))
-                        _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
+                            emit(DownloadStatus.Downloaded(destFile.absolutePath))
+                            _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
+                        } else {
+                            throw Exception("Failed to rename temp file to dest file")
+                        }
                     } else {
-                        throw Exception("Failed to rename temp file to dest file")
+                        throw Exception("Download failed with exit code ${response.exitCode}")
                     }
                 } else {
-                    throw Exception("Download failed with exit code ${response.exitCode}")
-                }
-            } else {
-                // Fallback to OkHttp direct download
-                var existingLength = 0L
-                if (tempFile.exists()) {
-                    existingLength = tempFile.length()
-                }
+                    // Fallback to OkHttp direct download
+                    var existingLength = 0L
+                    if (tempFile.exists()) {
+                        existingLength = tempFile.length()
+                    }
 
-                val requestBuilder = Request.Builder().url(song.url)
-                if (existingLength > 0) {
-                    requestBuilder.header("Range", "bytes=$existingLength-")
-                }
+                    val requestBuilder = Request.Builder().url(song.url)
+                    if (existingLength > 0) {
+                        requestBuilder.header("Range", "bytes=$existingLength-")
+                    }
 
-                val request = requestBuilder.build()
-                val response = okHttpClient.newCall(request).execute()
+                    val request = requestBuilder.build()
+                    val response = okHttpClient.newCall(request).execute()
 
-                if (!response.isSuccessful) {
-                    if (response.code == 416) {
-                        tempFile.delete()
-                        existingLength = 0L
-                        downloadFromScratch(song, tempFile, destFile)
-                        
-                        downloadArtworkLocally(song.imageUrl, songId)
-                        val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
-                        val artworkFile = File(context.filesDir, "$songId.jpg")
-                        val updatedSong = currentSong.copy(
-                            audioPath = destFile.absolutePath,
-                            artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
-                        )
-                        songRepository.addSong(updatedSong)
+                    if (!response.isSuccessful) {
+                        if (response.code == 416) {
+                            tempFile.delete()
+                            existingLength = 0L
+                            downloadFromScratch(song, tempFile, destFile)
+                            
+                            downloadArtworkLocally(song.imageUrl, songId)
+                            val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
+                            val artworkFile = File(context.filesDir, "$songId.jpg")
+                            val updatedSong = currentSong.copy(
+                                audioPath = destFile.absolutePath,
+                                artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
+                            )
+                            songRepository.addSong(updatedSong)
 
-                        emit(DownloadStatus.Downloaded(destFile.absolutePath))
-                        _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
+                            emit(DownloadStatus.Downloaded(destFile.absolutePath))
+                            _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
+                        } else {
+                            throw Exception("Server returned code ${response.code}")
+                        }
                     } else {
-                        throw Exception("Server returned code ${response.code}")
-                    }
-                } else {
-                    val body = response.body ?: throw Exception("Response body is null")
-                    val responseLength = body.contentLength()
-                    val totalLength = if (response.code == 206) {
-                        responseLength + existingLength
-                    } else {
-                        tempFile.delete()
-                        existingLength = 0
-                        responseLength
-                    }
+                        val body = response.body ?: throw Exception("Response body is null")
+                        val responseLength = body.contentLength()
+                        val totalLength = if (response.code == 206) {
+                            responseLength + existingLength
+                        } else {
+                            tempFile.delete()
+                            existingLength = 0
+                            responseLength
+                        }
 
-                    val inputStream = body.byteStream()
-                    val randomAccessFile = RandomAccessFile(tempFile, "rw")
-                    randomAccessFile.seek(existingLength)
+                        val inputStream = body.byteStream()
+                        val randomAccessFile = RandomAccessFile(tempFile, "rw")
+                        randomAccessFile.seek(existingLength)
 
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var totalBytesDownloaded = existingLength
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalBytesDownloaded = existingLength
 
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        randomAccessFile.write(buffer, 0, bytesRead)
-                        totalBytesDownloaded += bytesRead
-                        val progress = if (totalLength > 0) totalBytesDownloaded.toFloat() / totalLength else 0f
-                        
-                        emit(DownloadStatus.Downloading(progress))
-                        _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(progress)) }
-                    }
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            randomAccessFile.write(buffer, 0, bytesRead)
+                            totalBytesDownloaded += bytesRead
+                            val progress = if (totalLength > 0) totalBytesDownloaded.toFloat() / totalLength else 0f
+                            
+                            emit(DownloadStatus.Downloading(progress))
+                            _downloadStatuses.update { it + (songId to DownloadStatus.Downloading(progress)) }
+                        }
 
-                    randomAccessFile.close()
-                    inputStream.close()
-                    body.close()
+                        randomAccessFile.close()
+                        inputStream.close()
+                        body.close()
 
-                    if (tempFile.renameTo(destFile)) {
-                        downloadArtworkLocally(song.imageUrl, songId)
-                        val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
-                        val artworkFile = File(context.filesDir, "$songId.jpg")
-                        val updatedSong = currentSong.copy(
-                            audioPath = destFile.absolutePath,
-                            artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
-                        )
-                        songRepository.addSong(updatedSong)
+                        if (tempFile.renameTo(destFile)) {
+                            downloadArtworkLocally(song.imageUrl, songId)
+                            val currentSong = songRepository.getSongs().first().find { it.id == songId } ?: song
+                            val artworkFile = File(context.filesDir, "$songId.jpg")
+                            val updatedSong = currentSong.copy(
+                                audioPath = destFile.absolutePath,
+                                artworkPath = if (artworkFile.exists() && artworkFile.length() > 0) artworkFile.absolutePath else null
+                            )
+                            songRepository.addSong(updatedSong)
 
-                        emit(DownloadStatus.Downloaded(destFile.absolutePath))
-                        _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
-                    } else {
-                        throw Exception("Failed to save downloaded file")
+                            emit(DownloadStatus.Downloaded(destFile.absolutePath))
+                            _downloadStatuses.update { it + (songId to DownloadStatus.Downloaded(destFile.absolutePath)) }
+                        } else {
+                            throw Exception("Failed to save downloaded file")
+                        }
                     }
                 }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("SongDownloaderImpl", "downloadSong: failed for song $songId", e)
-            val currentStatus = _downloadStatuses.value[songId]
-            if (currentStatus is DownloadStatus.Downloading) {
-                emit(DownloadStatus.Error(e.message ?: "Unknown error"))
-                _downloadStatuses.update { it + (songId to DownloadStatus.Error(e.message ?: "Unknown error")) }
+            } catch (e: Exception) {
+                android.util.Log.e("SongDownloaderImpl", "downloadSong: failed for song $songId", e)
+                val currentStatus = _downloadStatuses.value[songId]
+                if (currentStatus is DownloadStatus.Downloading) {
+                    emit(DownloadStatus.Error(e.message ?: "Unknown error"))
+                    _downloadStatuses.update { it + (songId to DownloadStatus.Error(e.message ?: "Unknown error")) }
+                }
             }
         }
     }.flowOn(Dispatchers.IO)

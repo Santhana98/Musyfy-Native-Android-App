@@ -133,15 +133,41 @@ class PlayerManagerImpl @Inject constructor(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            android.util.Log.e("MusyfyPlayback", "ExoPlayer Listener: onPlayerError: errorCode=${error.errorCode}, errorMessage=${error.message}", error)
-            _playbackUiState.update {
-                it.copy(
-                    state = PlayerState.ERROR,
-                    isPlaying = false,
-                    errorMessage = error.localizedMessage ?: "Playback error"
-                )
+            val errorCode = error.errorCode
+            val category = when (errorCode) {
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "NETWORK_ERROR"
+                
+                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+                PlaybackException.ERROR_CODE_IO_NO_PERMISSION -> "STORAGE_ERROR"
+
+                PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+                PlaybackException.ERROR_CODE_DECODING_FAILED -> "DECODER_ERROR"
+
+                else -> "GENERAL_PLAYBACK_ERROR"
             }
-            stopProgressUpdate()
+
+            android.util.Log.e("MusyfyPlayback", "ExoPlayer Listener: onPlayerError: category=$category, errorCode=$errorCode, msg=${error.message}", error)
+
+            val currentQueue = _playbackUiState.value.queue
+            val currentSong = _playbackUiState.value.currentSong
+            val currentIndex = if (currentSong != null) currentQueue.indexOfFirst { it.id == currentSong.id } else -1
+
+            // Context-Aware Recovery: If error is unplayable track and next song exists, auto-advance!
+            if ((category == "STORAGE_ERROR" || category == "DECODER_ERROR") && currentIndex != -1 && currentIndex < currentQueue.size - 1) {
+                android.util.Log.w("MusyfyPlayback", "onPlayerError: Context-aware recovery advancing to next track.")
+                val nextSong = currentQueue[currentIndex + 1]
+                playSong(nextSong, currentQueue)
+            } else {
+                _playbackUiState.update {
+                    it.copy(
+                        state = PlayerState.ERROR,
+                        isPlaying = false,
+                        errorMessage = "Playback error ($category): ${error.localizedMessage ?: "Unknown"}"
+                    )
+                }
+                stopProgressUpdate()
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -310,7 +336,7 @@ class PlayerManagerImpl @Inject constructor(
         }
     }
 
-    override fun playSong(song: Song) {
+    override fun playSong(song: Song, customQueue: List<Song>?) {
         coroutineScope.launch {
             android.util.Log.d("MusyfyPlayback", "PlayerManager: playSong requested for song ID=${song.id}")
             
@@ -339,8 +365,13 @@ class PlayerManagerImpl @Inject constructor(
                 pendingPlaySongReason = null
             }
 
-            // Load all songs, checking for local files first (m4a/mp3/artwork)
-            val allSongs = songRepository.getSongs().first()
+            // Determine active playback queue (custom queue e.g. Playlist/Liked or fallback to Library)
+            val activeQueue = if (!customQueue.isNullOrEmpty()) {
+                customQueue
+            } else {
+                songRepository.getSongs().first()
+            }
+
             saveSessionActiveState(true)
             _playbackUiState.update {
                 it.copy(
@@ -348,17 +379,17 @@ class PlayerManagerImpl @Inject constructor(
                     state = PlayerState.LOADING,
                     isPlaying = false,
                     errorMessage = null,
-                    queue = allSongs,
+                    queue = activeQueue,
                     playbackSessionActive = true
                 )
             }
             
-            val mediaItems = allSongs.map { s ->
+            val mediaItems = activeQueue.map { s ->
                 val mediaItem = SongMapper.toMediaItem(s, context)
                 android.util.Log.d("MusyfyPlayback", "PlayerManager: Mapped song ID=${s.id} to URI=${mediaItem.localConfiguration?.uri}")
                 mediaItem
             }
-            val index = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+            val index = activeQueue.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
             
             android.util.Log.d("MusyfyPlayback", "PlayerManager: Calling setMediaItems(items, index=$index, position=0)")
             exoPlayer.setMediaItems(mediaItems, index, 0L)
@@ -372,6 +403,7 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun play() {
         coroutineScope.launch {
+            if (exoPlayer.isPlaying) return@launch
             exoPlayer.play()
             startService()
         }
@@ -379,6 +411,7 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun pause() {
         coroutineScope.launch {
+            if (!exoPlayer.isPlaying && exoPlayer.playbackState != Player.STATE_BUFFERING) return@launch
             exoPlayer.pause()
         }
     }
@@ -397,10 +430,25 @@ class PlayerManagerImpl @Inject constructor(
 
     override fun setQueue(songs: List<Song>) {
         coroutineScope.launch {
+            if (songs.isEmpty()) {
+                clearQueue()
+                return@launch
+            }
+            val currentSong = _playbackUiState.value.currentSong
             val mediaItems = songs.map { s -> SongMapper.toMediaItem(s, context) }
-            exoPlayer.setMediaItems(mediaItems)
-            _playbackUiState.update {
-                it.copy(queue = songs)
+            val existingIndex = if (currentSong != null) songs.indexOfFirst { it.id == currentSong.id } else -1
+
+            if (existingIndex != -1) {
+                val currentPos = exoPlayer.currentPosition.coerceAtLeast(0L)
+                exoPlayer.setMediaItems(mediaItems, existingIndex, currentPos)
+                _playbackUiState.update {
+                    it.copy(queue = songs)
+                }
+            } else {
+                exoPlayer.setMediaItems(mediaItems)
+                _playbackUiState.update {
+                    it.copy(queue = songs)
+                }
             }
         }
     }
@@ -408,6 +456,10 @@ class PlayerManagerImpl @Inject constructor(
     override fun addToQueue(song: Song) {
         coroutineScope.launch {
             val currentQueue = _playbackUiState.value.queue
+            if (currentQueue.isEmpty()) {
+                playSong(song)
+                return@launch
+            }
             if (currentQueue.none { it.id == song.id }) {
                 val updatedQueue = currentQueue + song
                 val mediaItem = SongMapper.toMediaItem(song, context)
@@ -422,21 +474,25 @@ class PlayerManagerImpl @Inject constructor(
     override fun playNext(song: Song) {
         coroutineScope.launch {
             val currentQueue = _playbackUiState.value.queue.toMutableList()
+            if (currentQueue.isEmpty()) {
+                playSong(song)
+                return@launch
+            }
+
             val mediaItem = SongMapper.toMediaItem(song, context)
-            
-            // Remove existing item to avoid duplicate index issues in queue
             val existingIndex = currentQueue.indexOfFirst { it.id == song.id }
             if (existingIndex != -1) {
                 currentQueue.removeAt(existingIndex)
                 exoPlayer.removeMediaItem(existingIndex)
             }
 
-            val currentIndex = exoPlayer.currentMediaItemIndex
-            val insertIndex = if (currentIndex == -1) 0 else (currentIndex + 1).coerceAtMost(currentQueue.size)
-            
+            val rawIndex = exoPlayer.currentMediaItemIndex
+            val currentIndex = if (rawIndex == -1) 0 else rawIndex
+            val insertIndex = (currentIndex + 1).coerceIn(0, currentQueue.size)
+
             currentQueue.add(insertIndex, song)
             exoPlayer.addMediaItem(insertIndex, mediaItem)
-            
+
             _playbackUiState.update {
                 it.copy(queue = currentQueue)
             }
@@ -446,13 +502,17 @@ class PlayerManagerImpl @Inject constructor(
     override fun reorderQueue(fromIndex: Int, toIndex: Int) {
         coroutineScope.launch {
             val currentQueue = _playbackUiState.value.queue.toMutableList()
-            if (fromIndex in currentQueue.indices && toIndex in currentQueue.indices) {
-                val song = currentQueue.removeAt(fromIndex)
-                currentQueue.add(toIndex, song)
-                exoPlayer.moveMediaItem(fromIndex, toIndex)
-                _playbackUiState.update {
-                    it.copy(queue = currentQueue)
-                }
+            if (currentQueue.size <= 1) return@launch
+
+            val safeFromIndex = fromIndex.coerceIn(0, currentQueue.size - 1)
+            val safeToIndex = toIndex.coerceIn(0, currentQueue.size - 1)
+            if (safeFromIndex == safeToIndex) return@launch
+
+            val song = currentQueue.removeAt(safeFromIndex)
+            currentQueue.add(safeToIndex, song)
+            exoPlayer.moveMediaItem(safeFromIndex, safeToIndex)
+            _playbackUiState.update {
+                it.copy(queue = currentQueue)
             }
         }
     }
@@ -476,9 +536,24 @@ class PlayerManagerImpl @Inject constructor(
     override fun removeFromQueue(songId: String) {
         coroutineScope.launch {
             val currentQueue = _playbackUiState.value.queue
+            if (currentQueue.isEmpty()) return@launch
+
             val index = currentQueue.indexOfFirst { it.id == songId }
-            if (index != -1) {
-                val updatedQueue = currentQueue.filter { it.id != songId }
+            if (index == -1) return@launch
+
+            val updatedQueue = currentQueue.filter { it.id != songId }
+            val isCurrentPlayingSong = (_playbackUiState.value.currentSong?.id == songId)
+
+            if (isCurrentPlayingSong) {
+                if (updatedQueue.isEmpty()) {
+                    clearQueue()
+                } else {
+                    val nextIndex = index.coerceAtMost(updatedQueue.size - 1)
+                    val nextSong = updatedQueue[nextIndex]
+                    exoPlayer.removeMediaItem(index)
+                    playSong(nextSong, updatedQueue)
+                }
+            } else {
                 exoPlayer.removeMediaItem(index)
                 _playbackUiState.update {
                     it.copy(queue = updatedQueue)

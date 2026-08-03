@@ -66,7 +66,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.shadow
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.LaunchedEffect
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsViewModel
+import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsMapper
 
 @Composable
 fun HomeScreen(
@@ -77,6 +79,7 @@ fun HomeScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
     scrollState: LazyListState = rememberLazyListState()
 ) {
+    val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
     var activeTab by remember { mutableStateOf("all") }
     var swipedSongId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -91,6 +94,20 @@ fun HomeScreen(
     val playlists by playlistViewModel.playlists.collectAsState()
 
     var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(selectedPlaylistId) {
+        if (selectedPlaylistId != null) {
+            val screenInfo = NavigationAnalyticsMapper.mapRouteToScreenInfo("playlist")
+            if (screenInfo != null) {
+                analyticsViewModel.tracker.logScreenView(screenInfo.name, screenInfo.category)
+            }
+        } else {
+            val screenInfo = NavigationAnalyticsMapper.mapRouteToScreenInfo("home")
+            if (screenInfo != null) {
+                analyticsViewModel.tracker.logScreenView(screenInfo.name, screenInfo.category)
+            }
+        }
+    }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
     var showAddToPlaylistDialog by remember { mutableStateOf<String?>(null) } // songId
@@ -371,7 +388,7 @@ fun HomeScreen(
                             isSelectionMode = isSelectionMode,
                             isSelected = selectedSongs.contains(song.id),
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp), // Consistent 24dp horizontal padding
-                            onToggleLike = { viewModel.toggleLikeSong(song) },
+                            onToggleLike = { viewModel.toggleLikeSong(song, source = "Home") },
                             isRevealed = swipedSongId == song.id,
                             onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                             onClick = {
@@ -382,7 +399,7 @@ fun HomeScreen(
                                         selectedSongs + song.id
                                     }
                                 } else {
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = songs)
                                 }
                             },
                             onLongClick = {
@@ -508,7 +525,7 @@ fun HomeScreen(
                 TextButton(
                     onClick = {
                         if (newPlaylistName.isNotBlank()) {
-                            playlistViewModel.createPlaylist(newPlaylistName)
+                            playlistViewModel.createPlaylist(newPlaylistName, source = "Home")
                             newPlaylistName = ""
                             showCreatePlaylistDialog = false
                         }
@@ -613,7 +630,7 @@ fun HomeScreen(
                 TextButton(
                     onClick = {
                         val deletedSong = targetSong
-                        viewModel.deleteSong(deletedSong.id)
+                        viewModel.deleteSong(deletedSong, source = "Home")
                         showDeleteConfirmationForSong = null
                         if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
                             selectedSongs = selectedSongs - deletedSong.id

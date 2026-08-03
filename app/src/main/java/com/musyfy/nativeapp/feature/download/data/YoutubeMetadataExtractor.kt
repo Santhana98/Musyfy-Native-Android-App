@@ -55,10 +55,6 @@ object YoutubeMetadataExtractor {
             
             val canonicalUrl = "https://www.youtube.com/watch?v=$videoId"
             Log.d(TAG, "fetchVideoInfo: Canonical YouTube Link: $canonicalUrl")
-
-            Log.d(TAG, "fetchVideoInfo: Initializing YoutubeDL instance...")
-            YoutubeDL.getInstance().init(context)
-            Log.d(TAG, "fetchVideoInfo: YoutubeDL instance successfully initialized")
             
             val request = YoutubeDLRequest(canonicalUrl).apply {
                 addOption("--dump-single-json")

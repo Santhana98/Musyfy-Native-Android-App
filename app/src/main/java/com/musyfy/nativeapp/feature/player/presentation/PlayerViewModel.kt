@@ -5,20 +5,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
 import com.musyfy.nativeapp.core.analytics.ImportAnalyticsTracker
+import com.musyfy.nativeapp.core.analytics.LibraryAnalyticsTracker
 import com.musyfy.nativeapp.core.playback.PlaybackUiState
 import com.musyfy.nativeapp.core.playback.PlayerManager
 import com.musyfy.nativeapp.domain.model.Song
+import com.musyfy.nativeapp.domain.repository.PlaylistRepository
 import com.musyfy.nativeapp.domain.repository.SongRepository
 import com.musyfy.nativeapp.feature.download.data.SongDownloaderImpl
 import com.musyfy.nativeapp.feature.download.data.YoutubeMetadataExtractor
 import com.musyfy.nativeapp.feature.download.domain.SongDownloader
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
+import com.musyfy.nativeapp.core.protection.InFlightGuard
+import com.musyfy.nativeapp.domain.usecase.DeleteSongUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import com.musyfy.nativeapp.core.validation.InputValidator
+import com.musyfy.nativeapp.core.validation.ValidationResult
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,8 +33,13 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val playerManager: PlayerManager,
     private val songRepository: SongRepository,
+    private val playlistRepository: PlaylistRepository,
     private val songDownloader: SongDownloader,
+    private val deleteSongUseCase: DeleteSongUseCase,
     private val importAnalyticsTracker: ImportAnalyticsTracker,
+    private val libraryAnalyticsTracker: LibraryAnalyticsTracker,
+    private val inFlightGuard: InFlightGuard,
+    private val inputValidator: InputValidator,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -43,9 +54,9 @@ class PlayerViewModel @Inject constructor(
 
     val downloadStatuses: StateFlow<Map<String, DownloadStatus>> = songDownloader.downloadStatuses
 
-    fun playSong(song: Song) {
+    fun playSong(song: Song, queue: List<Song>? = null) {
         android.util.Log.d("MusyfyPlayback", "PlayerViewModel: Song selected: ID=${song.id}, Title=${song.title}, audioPath=${song.audioPath}, artworkPath=${song.artworkPath}, remoteUrl=${song.url}")
-        playerManager.playSong(song)
+        playerManager.playSong(song, queue)
     }
 
     fun play() {
@@ -216,21 +227,46 @@ class PlayerViewModel @Inject constructor(
         songDownloader.deleteDownloadedSong(songId)
     }
 
-    fun deleteSong(songId: String) {
+    fun deleteSong(songId: String, source: String? = null) {
         viewModelScope.launch {
-            // Delete from repository
-            songRepository.deleteSong(songId)
-            // Delete downloaded files if they exist
-            songDownloader.deleteDownloadedSong(songId)
-            // Remove from player queue if present
-            playerManager.removeFromQueue(songId)
+            inFlightGuard.runIfKeyNotInFlight("delete_$songId") {
+                deleteSongUseCase(songId, source)
+            }
         }
     }
 
-    fun toggleLikeSong(song: Song) {
+    fun deleteSong(song: Song, source: String? = null) {
+        deleteSong(song.id, source)
+    }
+
+    fun toggleLikeSong(song: Song, source: String? = null) {
         viewModelScope.launch {
-            val updated = song.copy(liked = !song.liked)
-            songRepository.addSong(updated)
+            inFlightGuard.runIfKeyNotInFlight("like_${song.id}") {
+                val isNowLiked = !song.liked
+                val updated = song.copy(liked = isNowLiked)
+                songRepository.addSong(updated)
+                val isCurrentlyPlaying = playerManager.playbackUiState.value.currentSong?.id == song.id
+                val songDurationSeconds = if (song.durationMs > 0) song.durationMs / 1000L else null
+                if (isNowLiked) {
+                    libraryAnalyticsTracker.trackLikedSong(
+                        songId = song.id,
+                        songTitle = song.title,
+                        artist = song.artist ?: "Unknown Artist",
+                        source = source,
+                        songDurationSeconds = songDurationSeconds,
+                        isCurrentlyPlaying = isCurrentlyPlaying
+                    )
+                } else {
+                    libraryAnalyticsTracker.trackRemovedLikedSong(
+                        songId = song.id,
+                        songTitle = song.title,
+                        artist = song.artist ?: "Unknown Artist",
+                        source = source,
+                        songDurationSeconds = songDurationSeconds,
+                        isCurrentlyPlaying = isCurrentlyPlaying
+                    )
+                }
+            }
         }
     }
 
@@ -242,8 +278,15 @@ class PlayerViewModel @Inject constructor(
 
     // YouTube Import Pipeline
     fun importYoutubeSong(url: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val validation = inputValidator.validateYoutubeUrl(url)
+        if (validation is ValidationResult.Error) {
+            onError(validation.message)
+            return
+        }
+        val sanitizedUrl = (validation as ValidationResult.Success).sanitizedInput
+
         viewModelScope.launch(Dispatchers.IO) {
-            val videoId = YoutubeMetadataExtractor.extractVideoId(url)
+            val videoId = YoutubeMetadataExtractor.extractVideoId(sanitizedUrl)
             if (videoId == null) {
                 viewModelScope.launch(Dispatchers.Main) {
                     onError("Invalid YouTube URL — please check and try again")
@@ -264,7 +307,7 @@ class PlayerViewModel @Inject constructor(
             importAnalyticsTracker.trackImportStarted(videoId)
 
             // Extract metadata from YouTube
-            val info = YoutubeMetadataExtractor.fetchVideoInfo(context, url)
+            val info = YoutubeMetadataExtractor.fetchVideoInfo(context, sanitizedUrl)
             if (info == null) {
                 importAnalyticsTracker.trackImportFailed(videoId, AnalyticsConstants.FailureReasons.METADATA_ERROR)
                 viewModelScope.launch(Dispatchers.Main) {
@@ -276,9 +319,9 @@ class PlayerViewModel @Inject constructor(
             // Create song entry using extracted metadata
             val newSong = Song(
                 id = info.id,
-                title = info.title,
-                artist = info.uploader ?: "Unknown Artist",
-                url = url,
+                title = inputValidator.sanitize(info.title).ifEmpty { "Untitled Track" },
+                artist = inputValidator.sanitize(info.uploader).ifEmpty { "Unknown Artist" },
+                url = sanitizedUrl,
                 imageUrl = info.thumbnail,
                 durationMs = (info.duration ?: 0) * 1000L
             )

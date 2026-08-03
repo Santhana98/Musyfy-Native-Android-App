@@ -413,28 +413,28 @@ fun SearchScreen(
                             if (recentlyPlayed.isNotEmpty()) {
                                 LibrarySection(title = "Recently Played", songs = recentlyPlayed) { song ->
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = recentlyPlayed)
                                 }
                             }
 
                             if (recentlyImported.isNotEmpty()) {
                                 LibrarySection(title = "Recently Imported", songs = recentlyImported) { song ->
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = recentlyImported)
                                 }
                             }
 
                             if (mostPlayed.isNotEmpty()) {
                                 LibrarySection(title = "Most Played", songs = mostPlayed) { song ->
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = mostPlayed)
                                 }
                             }
 
                             if (likedSongs.isNotEmpty()) {
                                 LibrarySection(title = "Liked Songs", songs = likedSongs) { song ->
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = likedSongs)
                                 }
                             }
 
@@ -572,7 +572,7 @@ fun SearchScreen(
                                                 if (query.trim().isNotEmpty() && !recentSearches.contains(query.trim())) {
                                                     recentSearches = (listOf(query.trim()) + recentSearches).take(5)
                                                 }
-                                                viewModel.playSong(song)
+                                                viewModel.playSong(song, queue = filteredSongs)
                                             },
                                             onDownloadClick = {
                                                 if (status is DownloadStatus.Downloaded) {
@@ -594,7 +594,7 @@ fun SearchScreen(
                                                 showDeleteConfirmationForSong = song
                                             },
                                             onToggleLike = {
-                                                viewModel.toggleLikeSong(song)
+                                                viewModel.toggleLikeSong(song, source = "Search")
                                             },
                                             isRevealed = swipedSongId == song.id,
                                             onReveal = { opened -> swipedSongId = if (opened) song.id else null },
@@ -684,7 +684,7 @@ fun SearchScreen(
                     TextButton(
                         onClick = {
                             val deletedSong = targetSong
-                            viewModel.deleteSong(deletedSong.id)
+                            viewModel.deleteSong(deletedSong, source = "Search")
                             showDeleteConfirmationForSong = null
                             coroutineScope.launch {
                                 val result = snackbarHostState.showSnackbar(

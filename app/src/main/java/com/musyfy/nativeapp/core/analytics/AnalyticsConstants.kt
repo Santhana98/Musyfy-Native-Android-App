@@ -2,12 +2,18 @@ package com.musyfy.nativeapp.core.analytics
 
 object AnalyticsConstants {
     object Screens {
-        const val HOME = "home_screen"
-        const val SEARCH = "search_screen"
-        const val LIKED = "liked_screen"
-        const val UPLOAD = "upload_screen"
-        const val SETTINGS = "settings_screen"
-        const val PLAYER = "player_screen"
+        const val SPLASH = "Splash"
+        const val LOGIN = "Login"
+        const val REGISTER = "Register"
+        const val FORGOT_PASSWORD = "ForgotPassword"
+        const val HOME = "Home"
+        const val SEARCH = "Search"
+        const val LIKED = "Liked"
+        const val UPLOAD = "Upload"
+        const val SETTINGS = "Settings"
+        const val PLAYER = "FullPlayer"
+        const val PLAYLIST = "Playlist"
+        const val APPEARANCE = "Appearance"
     }
 
     object Events {
@@ -42,11 +48,25 @@ object AnalyticsConstants {
         const val SONG_COMPLETED = "song_completed"
         const val SONG_SKIPPED = "song_skipped"
         const val LISTENING_SESSION = "listening_session"
+        // Playlist Events
+        const val PLAYLIST_CREATED = "playlist_created"
+        const val PLAYLIST_DELETED = "playlist_deleted"
+        const val PLAYLIST_RENAMED = "playlist_renamed"
+        const val PLAYLIST_PLAY_STARTED = "playlist_play_started"
+        const val PLAYLIST_SONG_ADDED = "playlist_song_added"
+        const val PLAYLIST_SONG_REMOVED = "playlist_song_removed"
+        const val PLAYLIST_REORDERED = "playlist_reordered"
+        // Library Events
+        const val LIKED_SONG = "liked_song"
+        const val REMOVED_LIKED_SONG = "removed_liked_song"
+        const val SONG_DELETED = "song_deleted"
     }
 
     object Params {
         const val SCREEN_NAME = "screen_name"
         const val SCREEN_CLASS = "screen_class"
+        const val PREVIOUS_SCREEN = "previous_screen"
+        const val SCREEN_CATEGORY = "screen_category"
         const val SONG_ID = "song_id"
         const val SONG_TITLE = "song_title"
         const val ARTIST = "artist"
@@ -78,9 +98,27 @@ object AnalyticsConstants {
         const val PLAYER_MODE = "player_mode"
         const val WALLPAPER_ACTION = "wallpaper_action"
         const val ACCENT_SOURCE = "accent_source"
+        const val PLAY_SOURCE = "play_source"
+        const val PLAYLIST_ID = "playlist_id"
         const val METHOD = "method"
         const val LOGIN_SOURCE = "login_source"
         const val LOGOUT_SOURCE = "logout_source"
+        const val PLAYLIST_NAME = "playlist_name"
+        const val INITIAL_SONG_COUNT = "initial_song_count"
+        const val CREATION_SOURCE = "creation_source"
+        const val SONG_COUNT_BEFORE_DELETE = "song_count_before_delete"
+        const val OLD_NAME = "old_name"
+        const val NEW_NAME = "new_name"
+        const val SONG_COUNT = "song_count"
+        const val CURRENT_PLAYLIST_SONG_COUNT = "current_playlist_song_count"
+        const val ADD_SOURCE = "add_source"
+        const val DELETE_SOURCE = "delete_source"
+        const val POSITION_INDEX = "position_index"
+        const val FROM_INDEX = "from_index"
+        const val TO_INDEX = "to_index"
+        const val WAS_LIKED = "was_liked"
+        const val PLAYLIST_COUNT = "playlist_count"
+        const val IS_CURRENTLY_PLAYING = "is_currently_playing"
     }
 
     object Auth {

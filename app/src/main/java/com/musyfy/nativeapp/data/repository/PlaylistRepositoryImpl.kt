@@ -64,6 +64,16 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun removeSongFromAllPlaylists(songId: String) = withContext(Dispatchers.IO) {
+        val allPlaylists = playlistDao.getAllPlaylistsDirect()
+        allPlaylists.forEach { playlistEntity ->
+            if (playlistEntity.songIds.contains(songId)) {
+                val updatedSongs = playlistEntity.songIds.filter { it != songId }
+                playlistDao.updatePlaylist(playlistEntity.copy(songIds = updatedSongs))
+            }
+        }
+    }
+
     override suspend fun reorderPlaylistSongs(playlistId: String, fromIndex: Int, toIndex: Int) = withContext(Dispatchers.IO) {
         val playlistEntity = playlistDao.getPlaylistById(playlistId).first() ?: return@withContext
         val updatedSongs = playlistEntity.songIds.toMutableList()

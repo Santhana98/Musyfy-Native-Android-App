@@ -5,10 +5,23 @@ data class AnalyticsEvent(
     val params: Map<String, Any> = emptyMap()
 ) {
     companion object {
-        fun screenView(screenName: String): AnalyticsEvent {
+        fun screenView(
+            screenName: String,
+            previousScreen: String? = null,
+            screenCategory: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SCREEN_NAME to screenName
+            )
+            if (!previousScreen.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.PREVIOUS_SCREEN] = previousScreen
+            }
+            if (!screenCategory.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.SCREEN_CATEGORY] = screenCategory
+            }
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.SCREEN_VIEW,
-                params = mapOf(AnalyticsConstants.Params.SCREEN_NAME to screenName)
+                params = params
             )
         }
 
@@ -233,6 +246,258 @@ data class AnalyticsEvent(
             }
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.LOGOUT,
+                params = params
+            )
+        }
+
+        fun songPlay(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            durationSeconds: Long,
+            source: String = "android_native",
+            playSource: String = "unknown",
+            playlistId: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                AnalyticsConstants.Params.ARTIST to artist,
+                AnalyticsConstants.Params.DURATION_SECONDS to durationSeconds,
+                AnalyticsConstants.Params.SOURCE to source,
+                AnalyticsConstants.Params.PLAY_SOURCE to playSource
+            )
+            if (!playlistId.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.PLAYLIST_ID] = playlistId
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SONG_PLAY,
+                params = params
+            )
+        }
+
+        fun playlistCreated(
+            playlistId: String,
+            playlistName: String,
+            initialSongCount: Int,
+            creationSource: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_CREATED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                    AnalyticsConstants.Params.INITIAL_SONG_COUNT to initialSongCount,
+                    AnalyticsConstants.Params.CREATION_SOURCE to creationSource
+                )
+            )
+        }
+
+        fun playlistDeleted(
+            playlistId: String,
+            playlistName: String,
+            songCountBeforeDelete: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_DELETED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                    AnalyticsConstants.Params.SONG_COUNT_BEFORE_DELETE to songCountBeforeDelete
+                )
+            )
+        }
+
+        fun playlistRenamed(
+            playlistId: String,
+            oldName: String,
+            newName: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_RENAMED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.OLD_NAME to oldName,
+                    AnalyticsConstants.Params.NEW_NAME to newName
+                )
+            )
+        }
+
+        fun playlistPlayStarted(
+            playlistId: String,
+            playlistName: String,
+            songCount: Int,
+            songId: String,
+            songTitle: String,
+            artist: String,
+            positionIndex: Int,
+            playSource: String,
+            shuffleEnabled: Boolean? = null,
+            repeatMode: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                AnalyticsConstants.Params.SONG_COUNT to songCount,
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                AnalyticsConstants.Params.ARTIST to artist,
+                AnalyticsConstants.Params.POSITION_INDEX to positionIndex,
+                AnalyticsConstants.Params.PLAY_SOURCE to playSource
+            )
+            if (shuffleEnabled != null) {
+                params[AnalyticsConstants.Params.SHUFFLE_ENABLED] = shuffleEnabled
+            }
+            if (!repeatMode.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.REPEAT_MODE] = repeatMode
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_PLAY_STARTED,
+                params = params
+            )
+        }
+
+        fun playlistSongAdded(
+            playlistId: String,
+            playlistName: String,
+            songId: String,
+            songTitle: String,
+            artist: String,
+            currentPlaylistSongCount: Int,
+            addSource: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_SONG_ADDED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                    AnalyticsConstants.Params.SONG_ID to songId,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist,
+                    AnalyticsConstants.Params.CURRENT_PLAYLIST_SONG_COUNT to currentPlaylistSongCount,
+                    AnalyticsConstants.Params.ADD_SOURCE to addSource
+                )
+            )
+        }
+
+        fun playlistSongRemoved(
+            playlistId: String,
+            playlistName: String,
+            songId: String,
+            songTitle: String,
+            artist: String,
+            currentPlaylistSongCount: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_SONG_REMOVED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                    AnalyticsConstants.Params.SONG_ID to songId,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist,
+                    AnalyticsConstants.Params.CURRENT_PLAYLIST_SONG_COUNT to currentPlaylistSongCount
+                )
+            )
+        }
+
+        fun playlistReordered(
+            playlistId: String,
+            playlistName: String,
+            fromIndex: Int,
+            toIndex: Int,
+            songCount: Int
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_REORDERED,
+                params = mapOf(
+                    AnalyticsConstants.Params.PLAYLIST_ID to playlistId,
+                    AnalyticsConstants.Params.PLAYLIST_NAME to playlistName,
+                    AnalyticsConstants.Params.FROM_INDEX to fromIndex,
+                    AnalyticsConstants.Params.TO_INDEX to toIndex,
+                    AnalyticsConstants.Params.SONG_COUNT to songCount
+                )
+            )
+        }
+
+        fun likedSong(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            source: String,
+            songDurationSeconds: Long? = null,
+            isCurrentlyPlaying: Boolean? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                AnalyticsConstants.Params.ARTIST to artist,
+                AnalyticsConstants.Params.SOURCE to source
+            )
+            if (songDurationSeconds != null && songDurationSeconds > 0) {
+                params[AnalyticsConstants.Params.DURATION_SECONDS] = songDurationSeconds
+            }
+            if (isCurrentlyPlaying != null) {
+                params[AnalyticsConstants.Params.IS_CURRENTLY_PLAYING] = isCurrentlyPlaying
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.LIKED_SONG,
+                params = params
+            )
+        }
+
+        fun removedLikedSong(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            source: String,
+            songDurationSeconds: Long? = null,
+            isCurrentlyPlaying: Boolean? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                AnalyticsConstants.Params.ARTIST to artist,
+                AnalyticsConstants.Params.SOURCE to source
+            )
+            if (songDurationSeconds != null && songDurationSeconds > 0) {
+                params[AnalyticsConstants.Params.DURATION_SECONDS] = songDurationSeconds
+            }
+            if (isCurrentlyPlaying != null) {
+                params[AnalyticsConstants.Params.IS_CURRENTLY_PLAYING] = isCurrentlyPlaying
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.REMOVED_LIKED_SONG,
+                params = params
+            )
+        }
+
+        fun songDeleted(
+            songId: String,
+            songTitle: String,
+            artist: String,
+            deleteSource: String,
+            wasLiked: Boolean = false,
+            playlistCount: Int = 0,
+            songDurationSeconds: Long? = null,
+            isCurrentlyPlaying: Boolean? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                AnalyticsConstants.Params.ARTIST to artist,
+                AnalyticsConstants.Params.DELETE_SOURCE to deleteSource,
+                AnalyticsConstants.Params.WAS_LIKED to wasLiked,
+                AnalyticsConstants.Params.PLAYLIST_COUNT to playlistCount
+            )
+            if (songDurationSeconds != null && songDurationSeconds > 0) {
+                params[AnalyticsConstants.Params.DURATION_SECONDS] = songDurationSeconds
+            }
+            if (isCurrentlyPlaying != null) {
+                params[AnalyticsConstants.Params.IS_CURRENTLY_PLAYING] = isCurrentlyPlaying
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SONG_DELETED,
                 params = params
             )
         }

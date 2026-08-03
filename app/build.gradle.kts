@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.firebase.crashlytics)
     id("com.google.gms.google-services")
 }
 
@@ -26,9 +27,12 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -37,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         jniLibs {
@@ -46,9 +51,10 @@ android {
 }
 
 dependencies {
-        // Firebase Analytics
-        implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
-        implementation("com.google.firebase:firebase-analytics")
+    // Firebase Analytics & Crashlytics
+    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation(libs.firebase.crashlytics)
     // AndroidX Core SplashScreen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 
@@ -107,6 +113,7 @@ dependencies {
 
     // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

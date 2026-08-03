@@ -1,21 +1,44 @@
 package com.musyfy.nativeapp.core.analytics
 
 object NavigationAnalyticsMapper {
+
+    data class ScreenInfo(
+        val name: String,
+        val category: String
+    )
+
     /**
-     * Maps a navigation route or active tab string to its corresponding Firebase screen name.
+     * Maps a navigation route or active tab string to its corresponding screen info (name and category).
      */
-    fun mapRouteToScreenName(routeOrTab: String?): String? {
+    fun mapRouteToScreenInfo(routeOrTab: String?): ScreenInfo? {
         return when (routeOrTab) {
-            "splash" -> null
-            "login" -> "Login"
-            "register" -> "Register"
-            "forgot_password" -> "ForgotPassword"
-            "home" -> "Home"
-            "search" -> "Search"
-            "upload" -> "Upload"
-            "liked" -> "Liked"
-            "settings" -> "Settings"
+            "splash" -> ScreenInfo(AnalyticsConstants.Screens.SPLASH, "Auth")
+            "login" -> ScreenInfo(AnalyticsConstants.Screens.LOGIN, "Auth")
+            "register" -> ScreenInfo(AnalyticsConstants.Screens.REGISTER, "Auth")
+            "forgot_password" -> ScreenInfo(AnalyticsConstants.Screens.FORGOT_PASSWORD, "Auth")
+            "home" -> ScreenInfo(AnalyticsConstants.Screens.HOME, "Main")
+            "search" -> ScreenInfo(AnalyticsConstants.Screens.SEARCH, "Discovery")
+            "upload" -> ScreenInfo(AnalyticsConstants.Screens.UPLOAD, "Import")
+            "liked" -> ScreenInfo(AnalyticsConstants.Screens.LIKED, "Library")
+            "settings" -> ScreenInfo(AnalyticsConstants.Screens.SETTINGS, "Preferences")
+            "full_player", "player" -> ScreenInfo(AnalyticsConstants.Screens.PLAYER, "Playback")
+            "playlist" -> ScreenInfo(AnalyticsConstants.Screens.PLAYLIST, "Library")
+            "appearance" -> ScreenInfo(AnalyticsConstants.Screens.APPEARANCE, "Preferences")
             else -> null
         }
+    }
+
+    /**
+     * Maps a navigation route or active tab string to its corresponding screen name.
+     */
+    fun mapRouteToScreenName(routeOrTab: String?): String? {
+        return mapRouteToScreenInfo(routeOrTab)?.name
+    }
+
+    /**
+     * Maps a navigation route or active tab string to its corresponding screen category.
+     */
+    fun mapRouteToScreenCategory(routeOrTab: String?): String? {
+        return mapRouteToScreenInfo(routeOrTab)?.category
     }
 }

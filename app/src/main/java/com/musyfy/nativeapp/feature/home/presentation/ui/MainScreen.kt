@@ -65,10 +65,11 @@ fun MainScreen(
     var activeTab by remember { mutableStateOf("home") }
     var isPlayerExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(activeTab) {
-        val screenName = NavigationAnalyticsMapper.mapRouteToScreenName(activeTab)
-        if (screenName != null) {
-            analyticsViewModel.tracker.logScreenView(screenName)
+    LaunchedEffect(activeTab, isPlayerExpanded) {
+        val currentRoute = if (isPlayerExpanded) "full_player" else activeTab
+        val screenInfo = NavigationAnalyticsMapper.mapRouteToScreenInfo(currentRoute)
+        if (screenInfo != null) {
+            analyticsViewModel.tracker.logScreenView(screenInfo.name, screenInfo.category)
         }
     }
 

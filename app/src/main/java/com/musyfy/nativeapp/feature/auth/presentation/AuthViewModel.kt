@@ -22,6 +22,8 @@ import com.musyfy.nativeapp.core.analytics.AnalyticsEvent
 import com.musyfy.nativeapp.core.analytics.AnalyticsManager
 import com.musyfy.nativeapp.core.analytics.AnalyticsConstants
 
+import com.musyfy.nativeapp.core.protection.ConflatedActionGuard
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
@@ -30,6 +32,7 @@ class AuthViewModel @Inject constructor(
     private val resetPasswordUseCase: ResetPasswordUseCase,
     private val userRepository: UserRepository,
     private val analyticsManager: AnalyticsManager,
+    private val conflatedActionGuard: ConflatedActionGuard,
     getAuthStateUseCase: GetAuthStateUseCase
 ) : ViewModel() {
 
@@ -42,7 +45,7 @@ class AuthViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "male")
 
     fun saveTheme(themeValue: String) {
-        viewModelScope.launch {
+        conflatedActionGuard.launchConflated(viewModelScope) {
             userRepository.saveTheme(themeValue)
         }
     }

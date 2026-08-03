@@ -26,6 +26,7 @@ class ListeningAnalyticsTrackerTest {
         id = "song_1",
         title = "Song One",
         artist = "Artist A",
+        url = "https://youtube.com/watch?v=1",
         audioPath = "path/1",
         durationMs = 200000L
     )
@@ -34,6 +35,7 @@ class ListeningAnalyticsTrackerTest {
         id = "song_2",
         title = "Song Two",
         artist = "Artist B",
+        url = "https://youtube.com/watch?v=2",
         audioPath = "path/2",
         durationMs = 180000L
     )
@@ -607,5 +609,64 @@ class ListeningAnalyticsTrackerTest {
         val sessionEvent = loggedEvents.firstOrNull { it.name == AnalyticsConstants.Events.LISTENING_SESSION }
         org.junit.Assert.assertNotNull("listening_session event should be logged", sessionEvent)
         assertEquals(1, sessionEvent!!.params[AnalyticsConstants.Params.SONGS_COMPLETED])
+    }
+
+    @Test
+    fun playbackStarts_emitsSingleSongPlayEventFirst() {
+        tracker.onMediaItemTransition(songA, 200000L)
+        assertTrue(loggedEvents.none { it.name == AnalyticsConstants.Events.SONG_PLAY })
+
+        tracker.onPlaybackStateChanged(isPlaying = true, playbackState = Player.STATE_READY, durationMs = 200000L)
+
+        val songPlayEvents = loggedEvents.filter { it.name == AnalyticsConstants.Events.SONG_PLAY }
+        assertEquals(1, songPlayEvents.size)
+        val playEvent = songPlayEvents[0]
+        assertEquals("song_1", playEvent.params[AnalyticsConstants.Params.SONG_ID])
+        assertEquals("Song One", playEvent.params[AnalyticsConstants.Params.SONG_TITLE])
+        assertEquals("Artist A", playEvent.params[AnalyticsConstants.Params.ARTIST])
+        assertEquals(200L, playEvent.params[AnalyticsConstants.Params.DURATION_SECONDS])
+    }
+
+    @Test
+    fun pauseAndResume_doesNotEmitDuplicateSongPlayEvent() {
+        tracker.onMediaItemTransition(songA, 200000L)
+        tracker.onPlaybackStateChanged(isPlaying = true, playbackState = Player.STATE_READY, durationMs = 200000L)
+
+        // Pause
+        tracker.onPlaybackStateChanged(isPlaying = false, playbackState = Player.STATE_READY, durationMs = 200000L)
+
+        // Resume
+        tracker.onPlaybackStateChanged(isPlaying = true, playbackState = Player.STATE_READY, durationMs = 200000L)
+
+        val songPlayEvents = loggedEvents.filter { it.name == AnalyticsConstants.Events.SONG_PLAY }
+        assertEquals(1, songPlayEvents.size)
+    }
+
+    @Test
+    fun restoredSongInPausedState_doesNotEmitSongPlayEvent() {
+        tracker.onMediaItemTransition(songA, 200000L, isPlaying = false)
+        tracker.onPlaybackStateChanged(isPlaying = false, playbackState = Player.STATE_READY, durationMs = 200000L)
+
+        assertTrue(loggedEvents.none { it.name == AnalyticsConstants.Events.SONG_PLAY })
+    }
+
+    @Test
+    fun autoNextTransition_emitsSongPlayEventWithAutoNextSource() {
+        tracker.onMediaItemTransition(songA, 200000L, isPlaying = true)
+        mockCurrentTimeMs += 200000L
+        tracker.onProgressUpdate(200000L, 200000L)
+
+        tracker.onMediaItemTransition(
+            newSong = songB,
+            newDurationMs = 180000L,
+            transitionReason = Player.MEDIA_ITEM_TRANSITION_REASON_AUTO,
+            isPlaying = true
+        )
+
+        val songPlayEvents = loggedEvents.filter { it.name == AnalyticsConstants.Events.SONG_PLAY }
+        assertEquals(2, songPlayEvents.size)
+        val songBPlayEvent = songPlayEvents[1]
+        assertEquals("song_2", songBPlayEvent.params[AnalyticsConstants.Params.SONG_ID])
+        assertEquals("AutoNext", songBPlayEvent.params[AnalyticsConstants.Params.PLAY_SOURCE])
     }
 }

@@ -63,9 +63,9 @@ class MainActivity : ComponentActivity() {
 
                     DisposableEffect(navController) {
                         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                            val screenName = NavigationAnalyticsMapper.mapRouteToScreenName(destination.route)
-                            if (screenName != null) {
-                                navigationAnalyticsTracker.logScreenView(screenName)
+                            val screenInfo = NavigationAnalyticsMapper.mapRouteToScreenInfo(destination.route)
+                            if (screenInfo != null) {
+                                navigationAnalyticsTracker.logScreenView(screenInfo.name, screenInfo.category)
                             }
                         }
                         navController.addOnDestinationChangedListener(listener)

@@ -188,8 +188,22 @@ fun PlaylistDetailScreen(
                     // Play All Button (gorgeous brand red)
                     Button(
                         onClick = {
-                            if (playlistSongs.isNotEmpty()) {
-                                playerViewModel.playSong(playlistSongs.first())
+                            if (playlistSongs.isNotEmpty() && playlist != null) {
+                                val startingSong = playlistSongs.first()
+                                val repeatModeStr = when (uiState.repeatMode) {
+                                    1 -> "one"
+                                    2 -> "all"
+                                    else -> "off"
+                                }
+                                playlistViewModel.trackPlaylistPlayStarted(
+                                    playlist = playlist,
+                                    startingSong = startingSong,
+                                    positionIndex = 0,
+                                    playSource = "Playlist",
+                                    shuffleEnabled = uiState.shuffleModeEnabled,
+                                    repeatMode = repeatModeStr
+                                )
+                                playerViewModel.playSong(startingSong, queue = playlistSongs)
                             }
                         },
                         modifier = Modifier.weight(1.5f),
@@ -301,7 +315,7 @@ fun PlaylistDetailScreen(
                                     isActive = uiState.currentSong?.id == song.id,
                                     isSelectionMode = isSelectionMode,
                                     isSelected = selectedSongs.contains(song.id),
-                                    onToggleLike = { playerViewModel.toggleLikeSong(song) },
+                                    onToggleLike = { playerViewModel.toggleLikeSong(song, source = "Playlist") },
                                     isRevealed = swipedSongId == song.id,
                                     onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                                     onClick = {
@@ -312,7 +326,22 @@ fun PlaylistDetailScreen(
                                                 selectedSongs + song.id
                                             }
                                         } else {
-                                            playerViewModel.playSong(song)
+                                            if (playlist != null) {
+                                                val repeatModeStr = when (uiState.repeatMode) {
+                                                    1 -> "one"
+                                                    2 -> "all"
+                                                    else -> "off"
+                                                }
+                                                playlistViewModel.trackPlaylistPlayStarted(
+                                                    playlist = playlist,
+                                                    startingSong = song,
+                                                    positionIndex = index,
+                                                    playSource = "Playlist",
+                                                    shuffleEnabled = uiState.shuffleModeEnabled,
+                                                    repeatMode = repeatModeStr
+                                                )
+                                            }
+                                            playerViewModel.playSong(song, queue = playlistSongs)
                                         }
                                     },
                                     onLongClick = {

@@ -270,7 +270,7 @@ fun LikedScreen(
                             isActive = uiState.currentSong?.id == song.id,
                             isSelectionMode = isSelectionMode,
                             isSelected = selectedSongs.contains(song.id),
-                            onToggleLike = { viewModel.toggleLikeSong(song) },
+                            onToggleLike = { viewModel.toggleLikeSong(song, source = "Liked") },
                             isRevealed = swipedSongId == song.id,
                             onReveal = { opened -> swipedSongId = if (opened) song.id else null },
                             onClick = {
@@ -281,7 +281,7 @@ fun LikedScreen(
                                         selectedSongs + song.id
                                     }
                                 } else {
-                                    viewModel.playSong(song)
+                                    viewModel.playSong(song, queue = filteredSongs)
                                 }
                             },
                             onLongClick = {
@@ -358,7 +358,7 @@ fun LikedScreen(
                 TextButton(
                     onClick = {
                         val deletedSong = targetSong
-                        viewModel.deleteSong(deletedSong.id)
+                        viewModel.deleteSong(deletedSong, source = "Liked")
                         showDeleteConfirmationForSong = null
                         if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
                             selectedSongs = selectedSongs - deletedSong.id
