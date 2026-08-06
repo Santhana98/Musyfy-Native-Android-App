@@ -63,6 +63,7 @@ fun MainScreen(
 ) {
     val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
     var activeTab by remember { mutableStateOf("home") }
+    var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
     var isPlayerExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(activeTab, isPlayerExpanded) {
@@ -153,7 +154,12 @@ fun MainScreen(
                         }
                         MusyfyBottomNavigationBar(
                             activeTab = activeTab,
-                            onTabSelected = { activeTab = it },
+                            onTabSelected = { tab ->
+                                if (tab == "home") {
+                                    selectedPlaylistId = null
+                                }
+                                activeTab = tab
+                            },
                             modifier = Modifier.navigationBarsPadding()
                         )
                     }
@@ -184,13 +190,19 @@ fun MainScreen(
                     "home" -> HomeScreen(
                         viewModel = viewModel,
                         onNavigateToUpload = { activeTab = "upload" },
-                        scrollState = homeLazyListState
+                        scrollState = homeLazyListState,
+                        selectedPlaylistId = selectedPlaylistId,
+                        onPlaylistSelected = { selectedPlaylistId = it },
+                        onClearSelectedPlaylist = { selectedPlaylistId = null }
                     )
                     "search" -> SearchScreen()
                     "liked" -> LikedScreen()
                     "upload" -> UploadScreen(
                         viewModel = viewModel,
-                        onNavigateToHome = { activeTab = "home" }
+                        onNavigateToHome = {
+                            selectedPlaylistId = null
+                            activeTab = "home"
+                        }
                     )
                     "settings" -> SettingsScreen(onLogout = onLogout)
                 }

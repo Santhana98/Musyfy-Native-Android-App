@@ -31,7 +31,7 @@ fun PremiumThemeBackground(
     val bgSource = LocalAppearanceBackgroundSource.current 
         ?: if (themeState == "female") BackgroundSource.YTheme else BackgroundSource.XTheme
 
-    val alignment = if (bgSource == BackgroundSource.YTheme) Alignment.TopCenter else Alignment.Center
+    val alignment = Alignment.Center
     val customBitmapState = if (bgSource is BackgroundSource.Custom) {
         produceState<android.graphics.Bitmap?>(initialValue = null, bgSource.file, bgSource.version) {
             value = withContext(Dispatchers.IO) {

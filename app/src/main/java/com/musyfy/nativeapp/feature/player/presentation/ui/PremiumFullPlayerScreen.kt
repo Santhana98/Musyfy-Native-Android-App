@@ -119,7 +119,7 @@ fun PremiumFullPlayerScreen(
 
     // Wallpaper rendering from unified appearance pipeline
     val bgSource = LocalAppearanceBackgroundSource.current
-    val alignment = if (bgSource == BackgroundSource.YTheme) Alignment.TopCenter else Alignment.Center
+    val alignment = Alignment.Center
     val customBitmapState = if (bgSource is BackgroundSource.Custom) {
         produceState<android.graphics.Bitmap?>(initialValue = null, bgSource.file, bgSource.version) {
             value = withContext(Dispatchers.IO) {
@@ -188,8 +188,8 @@ fun PremiumFullPlayerScreen(
                         .background(
                             Brush.verticalGradient(
                                 0.0f to Color.Transparent,
-                                0.78f to Color.Transparent,
-                                0.86f to Color.Black
+                                0.70f to Color.Transparent,
+                                1.0f to Color.Black.copy(alpha = 0.35f)
                             )
                         )
                 )

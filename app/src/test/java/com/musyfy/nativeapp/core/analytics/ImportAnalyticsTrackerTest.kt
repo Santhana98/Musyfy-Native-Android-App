@@ -157,4 +157,81 @@ class ImportAnalyticsTrackerTest {
         assertEquals(sessionId, cancelledEvent.params[AnalyticsConstants.Params.DOWNLOAD_SESSION_ID])
         assertEquals(2100L, cancelledEvent.params[AnalyticsConstants.Params.DOWNLOAD_DURATION_MS])
     }
+
+    @Test
+    fun testImportPerformanceFunnel_timeToMusic() {
+        var mockTime = 1000L
+        tracker.getElapsedRealtimeMs = { mockTime }
+
+        // 1. Add to Library clicked
+        val url = "https://www.youtube.com/watch?v=video_xyz"
+        val sessionId = tracker.trackAddToLibraryClicked(url)
+        assertEquals(2, loggedEvents.size) // add_to_library_clicked + import_started
+
+        // 2. Metadata extraction started
+        mockTime = 1200L
+        tracker.trackMetadataExtractionStarted(url)
+        assertEquals(3, loggedEvents.size)
+
+        // 3. Metadata extraction completed
+        mockTime = 2000L // 800ms metadata duration
+        tracker.trackMetadataExtractionCompleted(url, "video_xyz", "Test Song", "Test Artist")
+        assertEquals(4, loggedEvents.size)
+        val metadataEvent = loggedEvents[3]
+        assertEquals(800L, metadataEvent.params[AnalyticsConstants.Params.METADATA_DURATION_MS])
+
+        // 4. Download started & First audio cached after 350ms elapsed
+        mockTime = 2200L
+        tracker.trackDownloadStarted("video_xyz")
+        mockTime = 2550L // 350ms elapsed during downloading
+        tracker.trackFirstAudioCached("video_xyz")
+        assertEquals(6, loggedEvents.size)
+        val cacheEvent = loggedEvents[5]
+        assertEquals(AnalyticsConstants.Events.FIRST_AUDIO_CACHED, cacheEvent.name)
+        assertEquals(350L, cacheEvent.params[AnalyticsConstants.Params.CACHE_READY_DURATION_MS])
+
+        // 5. Playback ready (Time to music)
+        mockTime = 4500L // 3500ms total from click (4500 - 1000)
+        tracker.trackPlaybackReady("video_xyz")
+        assertEquals(7, loggedEvents.size)
+        val playbackEvent = loggedEvents[6]
+        assertEquals(AnalyticsConstants.Events.PLAYBACK_READY, playbackEvent.name)
+        assertEquals(3500L, playbackEvent.params[AnalyticsConstants.Params.TIME_TO_MUSIC_MS])
+        assertEquals("import", playbackEvent.params[AnalyticsConstants.Params.PLAYBACK_STARTED_FROM])
+
+        // 6. Duplicate first audio cached & playback ready calls are ignored (emit only once)
+        tracker.trackFirstAudioCached("video_xyz")
+        tracker.trackPlaybackReady("video_xyz")
+        assertEquals(7, loggedEvents.size)
+    }
+
+    @Test
+    fun testPlaybackReadyFiresAfterImportCompleted() {
+        var mockTime = 1000L
+        tracker.getElapsedRealtimeMs = { mockTime }
+
+        val url = "https://www.youtube.com/watch?v=video_abc"
+        tracker.trackAddToLibraryClicked(url)
+        mockTime = 1500L
+        tracker.trackMetadataExtractionStarted(url)
+        mockTime = 2000L
+        tracker.trackMetadataExtractionCompleted(url, "video_abc", "Song Title", "Artist")
+        mockTime = 2200L
+        tracker.trackDownloadStarted("video_abc")
+        mockTime = 3000L
+        tracker.trackDownloadCompleted("video_abc", 5_000_000L)
+        
+        // Import completed fires first (e.g. at 3.1s)
+        mockTime = 3100L
+        tracker.trackImportCompleted("video_abc")
+
+        // Playback starts AFTER import completed (e.g. at 5.2s)
+        mockTime = 5200L // 4200ms time_to_music_ms
+        tracker.trackPlaybackReady("video_abc")
+
+        val playbackEvent = loggedEvents.last()
+        assertEquals(AnalyticsConstants.Events.PLAYBACK_READY, playbackEvent.name)
+        assertEquals(4200L, playbackEvent.params[AnalyticsConstants.Params.TIME_TO_MUSIC_MS])
+        assertEquals("import", playbackEvent.params[AnalyticsConstants.Params.PLAYBACK_STARTED_FROM])
+    }
 }

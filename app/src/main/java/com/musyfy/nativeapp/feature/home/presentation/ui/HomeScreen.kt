@@ -77,7 +77,10 @@ fun HomeScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    scrollState: LazyListState = rememberLazyListState()
+    scrollState: LazyListState = rememberLazyListState(),
+    selectedPlaylistId: String? = null,
+    onPlaylistSelected: (String) -> Unit = {},
+    onClearSelectedPlaylist: () -> Unit = {}
 ) {
     val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
     var activeTab by remember { mutableStateOf("all") }
@@ -92,8 +95,6 @@ fun HomeScreen(
     val downloadStatuses by viewModel.downloadStatuses.collectAsState()
 
     val playlists by playlistViewModel.playlists.collectAsState()
-
-    var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(selectedPlaylistId) {
         if (selectedPlaylistId != null) {
@@ -129,8 +130,8 @@ fun HomeScreen(
     ) {
         if (selectedPlaylistId != null) {
             PlaylistDetailScreen(
-                playlistId = selectedPlaylistId!!,
-                onCollapse = { selectedPlaylistId = null },
+                playlistId = selectedPlaylistId,
+                onCollapse = onClearSelectedPlaylist,
                 playlistViewModel = playlistViewModel,
                 playerViewModel = viewModel
             )
@@ -484,7 +485,7 @@ fun HomeScreen(
                         LegacyPlaylistRow(
                             playlist = playlist,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            onClick = { selectedPlaylistId = playlist.id }
+                            onClick = { onPlaylistSelected(playlist.id) }
                         )
                     }
                 }

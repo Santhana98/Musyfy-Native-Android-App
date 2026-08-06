@@ -54,8 +54,19 @@ class PlayerViewModel @Inject constructor(
 
     val downloadStatuses: StateFlow<Map<String, DownloadStatus>> = songDownloader.downloadStatuses
 
+    init {
+        viewModelScope.launch {
+            playerManager.playbackUiState.collect { state ->
+                if (state.isPlaying && state.currentSong != null) {
+                    importAnalyticsTracker.trackPlaybackReady(state.currentSong.id)
+                }
+            }
+        }
+    }
+
     fun playSong(song: Song, queue: List<Song>? = null) {
         android.util.Log.d("MusyfyPlayback", "PlayerViewModel: Song selected: ID=${song.id}, Title=${song.title}, audioPath=${song.audioPath}, artworkPath=${song.artworkPath}, remoteUrl=${song.url}")
+        importAnalyticsTracker.trackPlaybackReady(song.id)
         playerManager.playSong(song, queue)
     }
 
@@ -138,28 +149,34 @@ class PlayerViewModel @Inject constructor(
     }
 
     // Downloader Interface controls
-    // Architectural Note: For Phase 9.5.3 only, PlayerViewModel owns the integration with ImportAnalyticsTracker.
-    // This is an intentional architectural decision to minimize changes and may be moved closer to the downloader layer in a future refactor.
+    // Architectural Note: PlayerViewModel owns the integration with ImportAnalyticsTracker.
     fun startDownload(song: Song) {
+        // Track download started immediately upon initiating download session
+        importAnalyticsTracker.trackDownloadStarted(song.id)
+
         viewModelScope.launch {
             val job = launch {
                 songDownloader.downloadSong(song).collect { status ->
                     when (status) {
                         is DownloadStatus.Downloading -> {
-                            // Log download_started when the actual download begins (first progress update)
-                            importAnalyticsTracker.trackDownloadStarted(song.id)
+                            // Log first_audio_cached when actual downloading progress arrives
+                            importAnalyticsTracker.trackFirstAudioCached(song.id)
                         }
                         is DownloadStatus.Downloaded -> {
-                            // Log download completed lifecycle event
-                            importAnalyticsTracker.trackDownloadCompleted(song.id)
+                            // Log download completed lifecycle event with actual file size on disk
+                            val fileSize = java.io.File(status.localPath).length()
+                            importAnalyticsTracker.trackDownloadCompleted(song.id, fileSize)
 
-                            // Log import_completed only after the song has been successfully persisted to the local library,
-                            // not merely when the download finishes.
+                            // Log import_completed only after the song has been successfully persisted to the local library
                             val persistedSong = songRepository.getSongs().first().find { it.id == song.id }
                             if (persistedSong != null && persistedSong.audioPath != null) {
                                 importAnalyticsTracker.trackImportCompleted(song.id)
                             } else {
-                                importAnalyticsTracker.trackImportFailed(song.id, AnalyticsConstants.FailureReasons.STORAGE_ERROR)
+                                importAnalyticsTracker.trackImportFailedWithStage(
+                                    keyOrSongId = song.id,
+                                    failureReason = AnalyticsConstants.FailureReasons.STORAGE_ERROR,
+                                    failureStage = AnalyticsConstants.FailureStages.STORAGE
+                                )
                             }
                         }
                         is DownloadStatus.Error -> {
@@ -167,9 +184,14 @@ class PlayerViewModel @Inject constructor(
                             val normalizedDownloadReason = normalizeDownloadErrorForDownload(status.message)
                             importAnalyticsTracker.trackDownloadFailed(song.id, normalizedDownloadReason)
 
-                            // Log import failed lifecycle event
+                            // Log import failed lifecycle event with stage
                             val normalizedReason = normalizeDownloadError(status.message)
-                            importAnalyticsTracker.trackImportFailed(song.id, normalizedReason)
+                            val failureStage = getFailureStageFromReason(normalizedReason)
+                            importAnalyticsTracker.trackImportFailedWithStage(
+                                keyOrSongId = song.id,
+                                failureReason = normalizedReason,
+                                failureStage = failureStage
+                            )
                         }
                         else -> {}
                     }
@@ -179,6 +201,16 @@ class PlayerViewModel @Inject constructor(
             job.invokeOnCompletion {
                 (songDownloader as? SongDownloaderImpl)?.clearJob(song.id)
             }
+        }
+    }
+
+    private fun getFailureStageFromReason(reason: String): String {
+        return when (reason) {
+            AnalyticsConstants.FailureReasons.NETWORK_ERROR -> AnalyticsConstants.FailureStages.NETWORK
+            AnalyticsConstants.FailureReasons.METADATA_ERROR -> AnalyticsConstants.FailureStages.METADATA
+            AnalyticsConstants.FailureReasons.DOWNLOAD_ERROR -> AnalyticsConstants.FailureStages.DOWNLOAD
+            AnalyticsConstants.FailureReasons.STORAGE_ERROR -> AnalyticsConstants.FailureStages.STORAGE
+            else -> AnalyticsConstants.FailureStages.UNKNOWN
         }
     }
 
@@ -285,14 +317,25 @@ class PlayerViewModel @Inject constructor(
         }
         val sanitizedUrl = (validation as ValidationResult.Success).sanitizedInput
 
+        // Milestone 1: Track Add to Library Clicked
+        val sessionId = importAnalyticsTracker.trackAddToLibraryClicked(sanitizedUrl)
+
         viewModelScope.launch(Dispatchers.IO) {
             val videoId = YoutubeMetadataExtractor.extractVideoId(sanitizedUrl)
             if (videoId == null) {
+                importAnalyticsTracker.trackImportFailedWithStage(
+                    keyOrSongId = sanitizedUrl,
+                    failureReason = AnalyticsConstants.FailureReasons.INVALID_URL,
+                    failureStage = AnalyticsConstants.FailureStages.METADATA
+                )
                 viewModelScope.launch(Dispatchers.Main) {
                     onError("Invalid YouTube URL — please check and try again")
                 }
                 return@launch
             }
+
+            // Milestone 2: Metadata Extraction Started
+            importAnalyticsTracker.trackMetadataExtractionStarted(sanitizedUrl)
 
             // Prevent duplicate entries in the library and reuse cached content
             val exists = songs.value.any { it.id == videoId }
@@ -303,24 +346,36 @@ class PlayerViewModel @Inject constructor(
                 return@launch
             }
 
-            // Log import started when the import pipeline actually begins
-            importAnalyticsTracker.trackImportStarted(videoId)
-
             // Extract metadata from YouTube
             val info = YoutubeMetadataExtractor.fetchVideoInfo(context, sanitizedUrl)
             if (info == null) {
-                importAnalyticsTracker.trackImportFailed(videoId, AnalyticsConstants.FailureReasons.METADATA_ERROR)
+                importAnalyticsTracker.trackImportFailedWithStage(
+                    keyOrSongId = sanitizedUrl,
+                    failureReason = AnalyticsConstants.FailureReasons.METADATA_ERROR,
+                    failureStage = AnalyticsConstants.FailureStages.METADATA
+                )
                 viewModelScope.launch(Dispatchers.Main) {
                     onError("Failed to extract metadata. Check connection and try again.")
                 }
                 return@launch
             }
 
+            val sanitizedTitle = inputValidator.sanitize(info.title).ifEmpty { "Untitled Track" }
+            val sanitizedArtist = inputValidator.sanitize(info.uploader).ifEmpty { "Unknown Artist" }
+
+            // Milestone 3: Metadata Extraction Completed
+            importAnalyticsTracker.trackMetadataExtractionCompleted(
+                keyOrUrl = sanitizedUrl,
+                songId = info.id,
+                songTitle = sanitizedTitle,
+                artist = sanitizedArtist
+            )
+
             // Create song entry using extracted metadata
             val newSong = Song(
                 id = info.id,
-                title = inputValidator.sanitize(info.title).ifEmpty { "Untitled Track" },
-                artist = inputValidator.sanitize(info.uploader).ifEmpty { "Unknown Artist" },
+                title = sanitizedTitle,
+                artist = sanitizedArtist,
                 url = sanitizedUrl,
                 imageUrl = info.thumbnail,
                 durationMs = (info.duration ?: 0) * 1000L

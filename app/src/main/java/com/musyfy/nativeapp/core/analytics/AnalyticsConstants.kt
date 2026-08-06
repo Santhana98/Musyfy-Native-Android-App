@@ -60,6 +60,12 @@ object AnalyticsConstants {
         const val LIKED_SONG = "liked_song"
         const val REMOVED_LIKED_SONG = "removed_liked_song"
         const val SONG_DELETED = "song_deleted"
+        // Import Performance Events (Phase 14.1)
+        const val ADD_TO_LIBRARY_CLICKED = "add_to_library_clicked"
+        const val METADATA_EXTRACTION_STARTED = "metadata_extraction_started"
+        const val METADATA_EXTRACTION_COMPLETED = "metadata_extraction_completed"
+        const val FIRST_AUDIO_CACHED = "first_audio_cached"
+        const val PLAYBACK_READY = "playback_ready"
     }
 
     object Params {
@@ -119,6 +125,25 @@ object AnalyticsConstants {
         const val WAS_LIKED = "was_liked"
         const val PLAYLIST_COUNT = "playlist_count"
         const val IS_CURRENTLY_PLAYING = "is_currently_playing"
+        // Import Performance Parameters (Phase 14.1)
+        const val METADATA_DURATION_MS = "metadata_duration_ms"
+        const val CACHE_READY_DURATION_MS = "cache_ready_duration_ms"
+        const val TIME_TO_MUSIC_MS = "time_to_music_ms"
+        const val FILE_SIZE_BYTES = "file_size_bytes"
+        const val AVERAGE_DOWNLOAD_SPEED_MBPS = "average_download_speed_mbps"
+        const val NETWORK_TYPE = "network_type"
+        const val FAILURE_STAGE = "failure_stage"
+        const val PLAYBACK_STARTED_FROM = "playback_started_from"
+    }
+
+    object FailureStages {
+        const val METADATA = "metadata"
+        const val DOWNLOAD = "download"
+        const val CACHE = "cache"
+        const val PLAYBACK = "playback"
+        const val STORAGE = "storage"
+        const val NETWORK = "network"
+        const val UNKNOWN = "unknown"
     }
 
     object Auth {

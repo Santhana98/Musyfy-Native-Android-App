@@ -75,13 +75,29 @@ data class AnalyticsEvent(
             )
         }
 
-        fun downloadCompleted(sessionId: String, durationMs: Long): AnalyticsEvent {
+        fun downloadCompleted(
+            sessionId: String,
+            durationMs: Long,
+            fileSizeBytes: Long = 0L,
+            averageDownloadSpeedMbps: Double = 0.0,
+            networkType: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.DOWNLOAD_SESSION_ID to sessionId,
+                AnalyticsConstants.Params.DOWNLOAD_DURATION_MS to durationMs
+            )
+            if (fileSizeBytes > 0) {
+                params[AnalyticsConstants.Params.FILE_SIZE_BYTES] = fileSizeBytes
+            }
+            if (averageDownloadSpeedMbps > 0) {
+                params[AnalyticsConstants.Params.AVERAGE_DOWNLOAD_SPEED_MBPS] = averageDownloadSpeedMbps
+            }
+            if (!networkType.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.NETWORK_TYPE] = networkType
+            }
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.DOWNLOAD_COMPLETED,
-                params = mapOf(
-                    AnalyticsConstants.Params.DOWNLOAD_SESSION_ID to sessionId,
-                    AnalyticsConstants.Params.DOWNLOAD_DURATION_MS to durationMs
-                )
+                params = params
             )
         }
 
@@ -498,6 +514,110 @@ data class AnalyticsEvent(
             }
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.SONG_DELETED,
+                params = params
+            )
+        }
+
+        // Import Performance Events (Phase 14.1)
+        fun addToLibraryClicked(sessionId: String, source: String = "youtube"): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ADD_TO_LIBRARY_CLICKED,
+                params = mapOf(
+                    AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                    AnalyticsConstants.Params.IMPORT_SOURCE to source
+                )
+            )
+        }
+
+        fun metadataExtractionStarted(sessionId: String, videoId: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.METADATA_EXTRACTION_STARTED,
+                params = mapOf(
+                    AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                    AnalyticsConstants.Params.SONG_ID to videoId
+                )
+            )
+        }
+
+        fun metadataExtractionCompleted(
+            sessionId: String,
+            videoId: String,
+            metadataDurationMs: Long,
+            songTitle: String,
+            artist: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.METADATA_EXTRACTION_COMPLETED,
+                params = mapOf(
+                    AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                    AnalyticsConstants.Params.SONG_ID to videoId,
+                    AnalyticsConstants.Params.METADATA_DURATION_MS to metadataDurationMs,
+                    AnalyticsConstants.Params.SONG_TITLE to songTitle,
+                    AnalyticsConstants.Params.ARTIST to artist
+                )
+            )
+        }
+
+        fun firstAudioCached(
+            sessionId: String,
+            videoId: String,
+            cacheReadyDurationMs: Long,
+            networkType: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                AnalyticsConstants.Params.SONG_ID to videoId,
+                AnalyticsConstants.Params.CACHE_READY_DURATION_MS to cacheReadyDurationMs
+            )
+            if (!networkType.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.NETWORK_TYPE] = networkType
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.FIRST_AUDIO_CACHED,
+                params = params
+            )
+        }
+
+        fun playbackReady(
+            sessionId: String,
+            songId: String,
+            timeToMusicMs: Long,
+            networkType: String? = null,
+            playbackStartedFrom: String = "import"
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                AnalyticsConstants.Params.SONG_ID to songId,
+                AnalyticsConstants.Params.TIME_TO_MUSIC_MS to timeToMusicMs,
+                AnalyticsConstants.Params.PLAYBACK_STARTED_FROM to playbackStartedFrom
+            )
+            if (!networkType.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.NETWORK_TYPE] = networkType
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYBACK_READY,
+                params = params
+            )
+        }
+
+        fun importFailedWithStage(
+            sessionId: String,
+            failureReason: String,
+            failureStage: String,
+            source: String = "youtube",
+            networkType: String? = null
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.IMPORT_SESSION_ID to sessionId,
+                AnalyticsConstants.Params.IMPORT_SOURCE to source,
+                AnalyticsConstants.Params.FAILURE_REASON to failureReason,
+                AnalyticsConstants.Params.FAILURE_STAGE to failureStage
+            )
+            if (!networkType.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.NETWORK_TYPE] = networkType
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.IMPORT_FAILED,
                 params = params
             )
         }
