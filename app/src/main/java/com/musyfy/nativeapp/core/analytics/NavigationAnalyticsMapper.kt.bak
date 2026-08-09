@@ -20,7 +20,6 @@ object NavigationAnalyticsMapper {
             "search" -> ScreenInfo(AnalyticsConstants.Screens.SEARCH, "Discovery")
             "upload" -> ScreenInfo(AnalyticsConstants.Screens.UPLOAD, "Import")
             "liked" -> ScreenInfo(AnalyticsConstants.Screens.LIKED, "Library")
-            "playlists" -> ScreenInfo(AnalyticsConstants.Screens.PLAYLISTS, "Library")
             "settings" -> ScreenInfo(AnalyticsConstants.Screens.SETTINGS, "Preferences")
             "full_player", "player" -> ScreenInfo(AnalyticsConstants.Screens.PLAYER, "Playback")
             "playlist" -> ScreenInfo(AnalyticsConstants.Screens.PLAYLIST, "Library")

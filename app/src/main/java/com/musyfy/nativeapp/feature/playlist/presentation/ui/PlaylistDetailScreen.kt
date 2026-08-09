@@ -135,7 +135,7 @@ fun PlaylistDetailScreen(
                 .fillMaxSize()
                 .padding(horizontal = 24.dp) // Premium 24dp horizontal margins
         ) {
-            Spacer(modifier = Modifier.height(76.dp)) // Offset for Top App Bar
+            Spacer(modifier = Modifier.height(12.dp)) // Clean safe top spacing
 
             // Back Arrow Navigation
             Row(

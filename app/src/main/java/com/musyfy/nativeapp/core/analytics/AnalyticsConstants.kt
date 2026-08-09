@@ -13,6 +13,7 @@ object AnalyticsConstants {
         const val SETTINGS = "Settings"
         const val PLAYER = "FullPlayer"
         const val PLAYLIST = "Playlist"
+        const val PLAYLISTS = "Playlists"
         const val APPEARANCE = "Appearance"
     }
 

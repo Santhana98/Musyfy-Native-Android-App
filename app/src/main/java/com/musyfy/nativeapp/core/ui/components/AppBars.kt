@@ -1,17 +1,17 @@
 package com.musyfy.nativeapp.core.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.animation.core.keyframes
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,34 +20,49 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musyfy.nativeapp.R
-
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.draw.scale
-
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 
 @Composable
 fun MusyfyTopBar(
@@ -134,7 +149,7 @@ fun MusyfyTopBar(
                     text = {
                         Text(
                             text = "🚪   Logout",
-                            color = Color(0xFFF9423A), // Brand accent red color
+                            color = MaterialTheme.colorScheme.primary, // Dynamic theme accent color
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -149,124 +164,171 @@ fun MusyfyTopBar(
     }
 }
 
+/**
+ * Premium Floating Glassmorphism Bottom Navigation Bar for Musyfy Native App.
+ * Active State Refinement:
+ * - Dynamic Theme Accent (`MaterialTheme.colorScheme.primary`) visually fills the active icon vector shape internally.
+ * - Zero radial glow, outer light, or luminous halos.
+ * - Active label uses dynamic accent color; inactive items remain neutral and subtle.
+ * - Retains 1.08x spring scale animation and tactile haptic feedback.
+ */
 @Composable
 fun MusyfyBottomNavigationBar(
     activeTab: String,
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var shouldGlowHome by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
-    LaunchedEffect(activeTab) {
-        if (activeTab == "home") {
-            shouldGlowHome = true
-            delay(1500)
-            shouldGlowHome = false
-        }
-    }
+    // Single source of truth for the dynamic Musyfy accent color (Auto Palette, Musyfy Orange, Classic Red)
+    val accentColor = MaterialTheme.colorScheme.primary
 
     val tabs = listOf(
-        BottomTab("home", "Home", "🏠"),
-        BottomTab("search", "Search", "🔍"),
-        BottomTab("liked", "Liked", "🤍"),
-        BottomTab("upload", "Upload", "⬆"),
-        BottomTab("settings", "Settings", "⚙️")
+        BottomTab("home", "Home", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomTab("search", "Search", Icons.Filled.Search, Icons.Outlined.Search),
+        BottomTab("playlists", "Playlists", Icons.Filled.QueueMusic, Icons.Outlined.QueueMusic),
+        BottomTab("upload", "Upload", Icons.Filled.FileUpload, Icons.Outlined.FileUpload),
+        BottomTab("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
     )
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xEE08080A)) // Translucent premium dark background
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
     ) {
+        // Floating glassmorphism rounded container
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(0.5.dp)
-                .background(Color(0x1FFFFFFF)) // Ultra soft divider
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(68.dp)
-                .padding(bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .height(64.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(32.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.6f),
+                    spotColor = Color.Black.copy(alpha = 0.35f)
+                )
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xF218181E),
+                            Color(0xF2111115)
+                        )
+                    ),
+                    shape = RoundedCornerShape(32.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x35FFFFFF),
+                            Color(0x10FFFFFF)
+                        )
+                    ),
+                    shape = RoundedCornerShape(32.dp)
+                )
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            tabs.forEach { tab ->
-                val isActive = activeTab == tab.id
-                val tabColor by animateColorAsState(
-                    targetValue = if (isActive) MaterialTheme.colorScheme.primary else Color(0x7AFFFFFF),
-                    animationSpec = tween(durationMillis = 200),
-                    label = "tabColor"
-                )
-                val scaleFactor by animateFloatAsState(
-                    targetValue = if (isActive) 1.08f else 1f,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "tabScale"
-                )
- 
-                val isHomeGlow = tab.id == "home" && shouldGlowHome
-                val glowAlpha by animateFloatAsState(
-                    targetValue = if (isHomeGlow) 0.5f else 0f,
-                    animationSpec = if (isHomeGlow) {
-                        keyframes {
-                            durationMillis = 1500
-                            0.0f at 0
-                            0.5f at 300
-                            0.5f at 800
-                            0.0f at 1500
-                        }
-                    } else {
-                        tween(200)
-                    },
-                    label = "homeGlowAlpha"
-                )
- 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clickable { onTabSelected(tab.id) }
-                        .scale(scaleFactor),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(28.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                tabs.forEach { tab ->
+                    val isActive = activeTab == tab.id
+
+                    val scaleFactor by animateFloatAsState(
+                        targetValue = if (isActive) 1.08f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "tabScale"
+                    )
+
+                    val iconColor by animateColorAsState(
+                        targetValue = if (isActive) accentColor else Color(0x80FFFFFF),
+                        animationSpec = tween(durationMillis = 200),
+                        label = "iconColor"
+                    )
+
+                    val textColor by animateColorAsState(
+                        targetValue = if (isActive) accentColor else Color(0x75FFFFFF),
+                        animationSpec = tween(durationMillis = 200),
+                        label = "textColor"
+                    )
+
+                    val dotAlpha by animateFloatAsState(
+                        targetValue = if (isActive) 1f else 0f,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "dotAlpha"
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                if (!isActive) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                onTabSelected(tab.id)
+                            }
+                            .scale(scaleFactor),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        if (glowAlpha > 0f) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            // Clean vector icon: filled shape when active (accent-colored), outlined when inactive
+                            Icon(
+                                imageVector = if (isActive) tab.activeIcon else tab.inactiveIcon,
+                                contentDescription = tab.label,
+                                tint = iconColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(1.dp))
+
+                        Text(
+                            text = tab.label,
+                            fontSize = 10.sp,
+                            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                            letterSpacing = 0.2.sp,
+                            color = textColor
+                        )
+
+                        // Subtle accent-colored indicator dot below active label
+                        if (dotAlpha > 0f) {
+                            Spacer(modifier = Modifier.height(2.dp))
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(4.dp)
                                     .background(
-                                        Brush.radialGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
-                                                Color.Transparent
-                                            )
-                                        ),
+                                        color = accentColor.copy(alpha = dotAlpha),
                                         shape = CircleShape
                                     )
                             )
+                        } else {
+                            Spacer(modifier = Modifier.height(6.dp))
                         }
-                        Text(
-                            text = tab.icon,
-                            fontSize = 18.sp,
-                            color = tabColor
-                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = tab.label,
-                        fontSize = 10.sp,
-                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                        letterSpacing = 0.2.sp,
-                        color = tabColor
-                    )
                 }
             }
         }
     }
 }
 
-data class BottomTab(val id: String, val label: String, val icon: String)
+data class BottomTab(
+    val id: String,
+    val label: String,
+    val activeIcon: ImageVector,
+    val inactiveIcon: ImageVector
+)
