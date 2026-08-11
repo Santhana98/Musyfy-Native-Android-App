@@ -62,6 +62,7 @@ import androidx.palette.graphics.Palette
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.musyfy.nativeapp.R
+import com.musyfy.nativeapp.feature.download.data.YoutubeImportState
 import com.musyfy.nativeapp.feature.download.data.YoutubeVideoInfo
 import com.musyfy.nativeapp.feature.download.presentation.PreviewUiState
 import com.musyfy.nativeapp.feature.download.presentation.UploadViewModel
@@ -154,11 +155,34 @@ fun UploadScreen(
     modifier: Modifier = Modifier
 ) {
     val uploadViewModel: UploadViewModel = hiltViewModel()
+    val coordinatorState by uploadViewModel.importState.collectAsState()
+    val coordinatorUrl by uploadViewModel.currentUrl.collectAsState()
     val previewState by uploadViewModel.previewState.collectAsState()
 
-    var url by remember { mutableStateOf("") }
-    var importState by remember { mutableStateOf(ImportState.Idle) }
-    var error by remember { mutableStateOf("") }
+    var url by remember(coordinatorUrl) { mutableStateOf(coordinatorUrl) }
+
+    val previewInfo = when (val s = coordinatorState) {
+        is YoutubeImportState.MetadataReady -> s.info
+        is YoutubeImportState.Importing -> s.info
+        is YoutubeImportState.Success -> s.info
+        else -> null
+    }
+
+    val isFetchingPreview = coordinatorState is YoutubeImportState.ExtractingMetadata
+    val previewError = (coordinatorState as? YoutubeImportState.Error)?.takeIf { it.isMetadataError }?.message
+
+    val importState = when (coordinatorState) {
+        is YoutubeImportState.Idle -> ImportState.Idle
+        is YoutubeImportState.ExtractingMetadata -> ImportState.Idle
+        is YoutubeImportState.MetadataReady -> ImportState.Idle
+        is YoutubeImportState.Importing -> ImportState.Importing
+        is YoutubeImportState.Success -> ImportState.Success
+        is YoutubeImportState.Error -> ImportState.Error
+    }
+
+    var error by remember(coordinatorState) {
+        mutableStateOf((coordinatorState as? YoutubeImportState.Error)?.takeIf { !it.isMetadataError }?.message ?: "")
+    }
 
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -167,20 +191,6 @@ fun UploadScreen(
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
     val view = LocalView.current
-
-    // Trigger metadata preview fetch when URL changes
-    LaunchedEffect(url) {
-        if (url.trim().isNotEmpty()) {
-            uploadViewModel.fetchPreview(url)
-        } else {
-            uploadViewModel.clearPreview()
-        }
-    }
-
-    // Unpack preview states
-    val previewInfo = (previewState as? PreviewUiState.Success)?.info
-    val isFetchingPreview = previewState is PreviewUiState.Loading
-    val previewError = (previewState as? PreviewUiState.Error)?.message
 
     // Palette Color Extraction
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -419,6 +429,7 @@ fun UploadScreen(
                 onValueChange = {
                     url = it
                     error = ""
+                    uploadViewModel.onUrlChanged(it)
                 },
                 placeholder = {
                     Text(
@@ -478,7 +489,7 @@ fun UploadScreen(
                                     val clipText = clipboardManager.getText()?.text.orEmpty()
                                     if (clipText.isNotEmpty()) {
                                         url = clipText
-                                        uploadViewModel.fetchPreview(clipText)
+                                        uploadViewModel.onUrlChanged(clipText)
                                     }
                                 }
                         )
@@ -893,27 +904,22 @@ fun UploadScreen(
                         interactionSource = btnInteractionSource,
                         indication = null
                     ) {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY) // Medium tap haptic
-                        importState = ImportState.Importing
                         keyboardController?.hide()
                         focusManager.clearFocus()
 
-                        viewModel.importYoutubeSong(
-                            url = url.trim(),
+                        uploadViewModel.startImport(
                             onSuccess = {
                                 coroutineScope.launch {
-                                    importState = ImportState.Success
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) // Heavy success haptic
+                                    com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics.performConfirmation(view) // Single confirmation haptic
                                     delay(1000) // Keep success checkmark visible
                                     isFlying = true // trigger flying transition
                                     delay(600) // flying transition completes
-                                    importState = ImportState.Idle
+                                    uploadViewModel.clearPreview()
                                     isFlying = false
                                     onNavigateToHome()
                                 }
                             },
                             onError = { errMsg ->
-                                importState = ImportState.Error
                                 error = errMsg
                                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) // Soft warning tick
                             }
@@ -1024,7 +1030,6 @@ fun UploadScreen(
                     modifier = Modifier
                         .clickable {
                             error = ""
-                            importState = ImportState.Idle
                             uploadViewModel.clearPreview()
                             url = ""
                         }

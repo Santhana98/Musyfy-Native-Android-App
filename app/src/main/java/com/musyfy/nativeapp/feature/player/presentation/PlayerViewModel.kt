@@ -27,6 +27,7 @@ import com.musyfy.nativeapp.core.validation.InputValidator
 import com.musyfy.nativeapp.core.validation.ValidationResult
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.musyfy.nativeapp.feature.download.data.YoutubeImportCoordinator
 import javax.inject.Inject
 
 @HiltViewModel
@@ -40,7 +41,8 @@ class PlayerViewModel @Inject constructor(
     private val libraryAnalyticsTracker: LibraryAnalyticsTracker,
     private val inFlightGuard: InFlightGuard,
     private val inputValidator: InputValidator,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val youtubeImportCoordinator: YoutubeImportCoordinator
 ) : ViewModel() {
 
     val playbackUiState: StateFlow<PlaybackUiState> = playerManager.playbackUiState
@@ -310,85 +312,7 @@ class PlayerViewModel @Inject constructor(
 
     // YouTube Import Pipeline
     fun importYoutubeSong(url: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        val validation = inputValidator.validateYoutubeUrl(url)
-        if (validation is ValidationResult.Error) {
-            onError(validation.message)
-            return
-        }
-        val sanitizedUrl = (validation as ValidationResult.Success).sanitizedInput
-
-        // Milestone 1: Track Add to Library Clicked
-        val sessionId = importAnalyticsTracker.trackAddToLibraryClicked(sanitizedUrl)
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val videoId = YoutubeMetadataExtractor.extractVideoId(sanitizedUrl)
-            if (videoId == null) {
-                importAnalyticsTracker.trackImportFailedWithStage(
-                    keyOrSongId = sanitizedUrl,
-                    failureReason = AnalyticsConstants.FailureReasons.INVALID_URL,
-                    failureStage = AnalyticsConstants.FailureStages.METADATA
-                )
-                viewModelScope.launch(Dispatchers.Main) {
-                    onError("Invalid YouTube URL — please check and try again")
-                }
-                return@launch
-            }
-
-            // Milestone 2: Metadata Extraction Started
-            importAnalyticsTracker.trackMetadataExtractionStarted(sanitizedUrl)
-
-            // Prevent duplicate entries in the library and reuse cached content
-            val exists = songs.value.any { it.id == videoId }
-            if (exists) {
-                viewModelScope.launch(Dispatchers.Main) {
-                    onSuccess()
-                }
-                return@launch
-            }
-
-            // Extract metadata from YouTube
-            val info = YoutubeMetadataExtractor.fetchVideoInfo(context, sanitizedUrl)
-            if (info == null) {
-                importAnalyticsTracker.trackImportFailedWithStage(
-                    keyOrSongId = sanitizedUrl,
-                    failureReason = AnalyticsConstants.FailureReasons.METADATA_ERROR,
-                    failureStage = AnalyticsConstants.FailureStages.METADATA
-                )
-                viewModelScope.launch(Dispatchers.Main) {
-                    onError("Failed to extract metadata. Check connection and try again.")
-                }
-                return@launch
-            }
-
-            val sanitizedTitle = inputValidator.sanitize(info.title).ifEmpty { "Untitled Track" }
-            val sanitizedArtist = inputValidator.sanitize(info.uploader).ifEmpty { "Unknown Artist" }
-
-            // Milestone 3: Metadata Extraction Completed
-            importAnalyticsTracker.trackMetadataExtractionCompleted(
-                keyOrUrl = sanitizedUrl,
-                songId = info.id,
-                songTitle = sanitizedTitle,
-                artist = sanitizedArtist
-            )
-
-            // Create song entry using extracted metadata
-            val newSong = Song(
-                id = info.id,
-                title = sanitizedTitle,
-                artist = sanitizedArtist,
-                url = sanitizedUrl,
-                imageUrl = info.thumbnail,
-                durationMs = (info.duration ?: 0) * 1000L
-            )
-            
-            songRepository.addSong(newSong)
-            
-            // Trigger background download (m4a stream + artwork thumbnail) automatically
-            startDownload(newSong)
-
-            viewModelScope.launch(Dispatchers.Main) {
-                onSuccess()
-            }
-        }
+        youtubeImportCoordinator.onUrlChanged(url)
+        youtubeImportCoordinator.startImport(onSuccess, onError)
     }
 }

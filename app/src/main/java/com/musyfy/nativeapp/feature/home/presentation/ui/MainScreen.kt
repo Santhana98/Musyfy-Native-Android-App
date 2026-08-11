@@ -53,6 +53,7 @@ import com.musyfy.nativeapp.feature.settings.presentation.ui.SettingsScreen
 @Composable
 fun MainScreen(
     onLogout: () -> Unit,
+    onNavigateToFeedback: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
@@ -161,7 +162,10 @@ fun MainScreen(
                         activeTab = "home"
                     }
                 )
-                "settings" -> SettingsScreen(onLogout = onLogout)
+                "settings" -> SettingsScreen(
+                    onLogout = onLogout,
+                    onNavigateToFeedback = onNavigateToFeedback
+                )
             }
         }
 

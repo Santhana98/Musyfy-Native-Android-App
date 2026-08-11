@@ -50,6 +50,7 @@ import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
+import com.musyfy.nativeapp.core.ui.theme.MusyfyOrange
 
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -285,7 +286,7 @@ fun RegisterScreen(
                     }
                     withStyle(
                         style = SpanStyle(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MusyfyOrange,
                             fontWeight = FontWeight.Bold
                         )
                     ) {

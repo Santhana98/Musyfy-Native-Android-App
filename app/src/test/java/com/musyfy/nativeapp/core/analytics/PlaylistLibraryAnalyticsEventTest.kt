@@ -34,6 +34,14 @@ class PlaylistLibraryAnalyticsEventTest {
     }
 
     @Test
+    fun testPlaylistSongsAddedEvent() {
+        val event = AnalyticsEvent.playlistSongsAdded(4, "Home")
+        assertEquals(AnalyticsConstants.Events.PLAYLIST_SONGS_ADDED, event.name)
+        assertEquals(4, event.params[AnalyticsConstants.Params.SONGS_COUNT])
+        assertEquals("Home", event.params[AnalyticsConstants.Params.ADD_SOURCE])
+    }
+
+    @Test
     fun testPlaylistPlayStartedEvent() {
         val event = AnalyticsEvent.playlistPlayStarted(
             playlistId = "p4",

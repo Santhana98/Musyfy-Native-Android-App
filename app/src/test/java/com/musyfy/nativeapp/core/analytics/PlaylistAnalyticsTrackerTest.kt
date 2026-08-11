@@ -131,6 +131,20 @@ class PlaylistAnalyticsTrackerTest {
     }
 
     @Test
+    fun testTrackPlaylistSongsAdded_logsBatchEvent() {
+        tracker.trackPlaylistSongsAdded(
+            songsCount = 4,
+            addSource = "Home"
+        )
+
+        assertEquals(1, loggedEvents.size)
+        val event = loggedEvents[0]
+        assertEquals(AnalyticsConstants.Events.PLAYLIST_SONGS_ADDED, event.name)
+        assertEquals(4, event.params[AnalyticsConstants.Params.SONGS_COUNT])
+        assertEquals("Home", event.params[AnalyticsConstants.Params.ADD_SOURCE])
+    }
+
+    @Test
     fun testTrackPlaylistSongRemoved_logsEvent() {
         tracker.trackPlaylistSongRemoved(
             playlistId = "p1",

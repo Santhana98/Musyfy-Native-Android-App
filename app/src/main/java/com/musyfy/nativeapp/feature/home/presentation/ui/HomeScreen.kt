@@ -38,6 +38,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.draw.scale
+import com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -83,6 +91,7 @@ fun HomeScreen(
     onClearSelectedPlaylist: () -> Unit = {}
 ) {
     val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
+    val haptic = LocalHapticFeedback.current
     var activeTab by remember { mutableStateOf("all") }
     var swipedSongId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -111,7 +120,7 @@ fun HomeScreen(
     }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
-    var showAddToPlaylistDialog by remember { mutableStateOf<String?>(null) } // songId
+    var showAddToPlaylistForSongs by remember { mutableStateOf<List<String>?>(null) }
 
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -178,7 +187,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable {
                                 if (selectedSongs.isNotEmpty()) {
-                                    showAddToPlaylistDialog = selectedSongs.first()
+                                    showAddToPlaylistForSongs = selectedSongs.toList()
                                 }
                             }
                         )
@@ -240,12 +249,27 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(16.dp))
 
                         // Polished Floating Upload Button (+)
+                        val uploadInteractionSource = remember { MutableInteractionSource() }
+                        val isUploadPressed by uploadInteractionSource.collectIsPressedAsState()
+                        val uploadScale by animateFloatAsState(
+                            targetValue = if (isUploadPressed) 0.94f else 1.0f,
+                            animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+                            label = "uploadBtnScale"
+                        )
+
                         Box(
                             modifier = Modifier
                                 .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
                                 .size(36.dp) // slightly smaller
+                                .scale(uploadScale)
                                 .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                .clickable { onNavigateToUpload() },
+                                .clickable(
+                                    interactionSource = uploadInteractionSource,
+                                    indication = null
+                                ) {
+                                    MusyfyHaptics.performLight(haptic)
+                                    onNavigateToUpload()
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -423,7 +447,7 @@ fun HomeScreen(
                                 viewModel.playNext(song)
                             },
                             onAddToPlaylist = {
-                                showAddToPlaylistDialog = song.id
+                                showAddToPlaylistForSongs = listOf(song.id)
                             },
                             onDelete = {
                                 showDeleteConfirmationForSong = song
@@ -458,13 +482,28 @@ fun HomeScreen(
                                 fontFamily = FontFamily.Default
                             )
                         }
+                        val createPlaylistInteractionSource = remember { MutableInteractionSource() }
+                        val isCreatePlaylistPressed by createPlaylistInteractionSource.collectIsPressedAsState()
+                        val createPlaylistScale by animateFloatAsState(
+                            targetValue = if (isCreatePlaylistPressed) 0.94f else 1.0f,
+                            animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+                            label = "createPlaylistBtnScale"
+                        )
+
                         Text(
                             text = "+",
                             color = MaterialTheme.colorScheme.primary,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
-                                .clickable { showCreatePlaylistDialog = true }
+                                .scale(createPlaylistScale)
+                                .clickable(
+                                    interactionSource = createPlaylistInteractionSource,
+                                    indication = null
+                                ) {
+                                    MusyfyHaptics.performLight(haptic)
+                                    showCreatePlaylistDialog = true
+                                }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -550,11 +589,18 @@ fun HomeScreen(
     }
 
     // Add to Playlist Dialog
-    if (showAddToPlaylistDialog != null) {
-        val songId = showAddToPlaylistDialog!!
+    if (showAddToPlaylistForSongs != null) {
+        val targetSongIds = showAddToPlaylistForSongs!!
+        val isBatch = targetSongIds.size > 1 || isSelectionMode
         AlertDialog(
-            onDismissRequest = { showAddToPlaylistDialog = null },
-            title = { Text("Add Song to Playlist", color = Color.White, fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showAddToPlaylistForSongs = null },
+            title = {
+                Text(
+                    text = if (targetSongIds.size > 1) "Add ${targetSongIds.size} Songs to Playlist" else "Add Song to Playlist",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 if (playlists.isEmpty()) {
                     Text("No playlists created yet. Please create a playlist first.", color = Color(0xFF888888))
@@ -568,8 +614,45 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        playlistViewModel.addSongToPlaylist(playlist.id, songId)
-                                        showAddToPlaylistDialog = null
+                                        val songIdsToProcess = targetSongIds
+                                        showAddToPlaylistForSongs = null
+                                        if (isBatch) {
+                                            playlistViewModel.addSongsToPlaylist(
+                                                playlistId = playlist.id,
+                                                songIds = songIdsToProcess,
+                                                source = "Home",
+                                                onResult = { addedCount, totalCount, playlistName ->
+                                                    isSelectionMode = false
+                                                    selectedSongs = emptySet()
+                                                    coroutineScope.launch {
+                                                        val msg = when {
+                                                            addedCount == 0 -> "All selected songs are already in $playlistName."
+                                                            addedCount == 1 && totalCount == 1 -> "Song added to $playlistName"
+                                                            else -> "$addedCount song${if (addedCount > 1) "s" else ""} added to $playlistName"
+                                                        }
+                                                        snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short)
+                                                    }
+                                                },
+                                                onError = { err ->
+                                                    coroutineScope.launch {
+                                                        snackbarHostState.showSnackbar(err, duration = SnackbarDuration.Short)
+                                                    }
+                                                }
+                                            )
+                                        } else {
+                                            val singleSongId = songIdsToProcess.first()
+                                            val songObj = songs.find { it.id == singleSongId }
+                                            if (songObj != null) {
+                                                playlistViewModel.addSongToPlaylist(playlist.id, songObj, source = "Home")
+                                            } else {
+                                                playlistViewModel.addSongToPlaylist(playlist.id, singleSongId)
+                                            }
+                                            isSelectionMode = false
+                                            selectedSongs = emptySet()
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Song added to ${playlist.name}", duration = SnackbarDuration.Short)
+                                            }
+                                        }
                                     }
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -587,7 +670,7 @@ fun HomeScreen(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { showAddToPlaylistDialog = null }) {
+                TextButton(onClick = { showAddToPlaylistForSongs = null }) {
                     Text("CLOSE", color = Color.White)
                 }
             },

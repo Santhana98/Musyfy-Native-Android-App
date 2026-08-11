@@ -38,6 +38,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.draw.scale
+import com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -85,6 +93,7 @@ fun PlaylistsScreen(
     var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
 
     val accentColor = MaterialTheme.colorScheme.primary
+    val view = LocalView.current
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -122,8 +131,17 @@ fun PlaylistsScreen(
                 }
 
                 // Prominent Create Playlist Button
+                val createInteractionSource = remember { MutableInteractionSource() }
+                val isCreatePressed by createInteractionSource.collectIsPressedAsState()
+                val createScale by animateFloatAsState(
+                    targetValue = if (isCreatePressed) 0.94f else 1.0f,
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+                    label = "createBtnScale"
+                )
+
                 Box(
                     modifier = Modifier
+                        .scale(createScale)
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             brush = Brush.horizontalGradient(
@@ -138,7 +156,11 @@ fun PlaylistsScreen(
                             color = accentColor.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(20.dp)
                         )
-                        .clickable {
+                        .clickable(
+                            interactionSource = createInteractionSource,
+                            indication = null
+                        ) {
+                            MusyfyHaptics.performLight(view)
                             newPlaylistName = ""
                             showCreateDialog = true
                         }
@@ -223,11 +245,24 @@ fun PlaylistsScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        val emptyCreateInteractionSource = remember { MutableInteractionSource() }
+                        val isEmptyCreatePressed by emptyCreateInteractionSource.collectIsPressedAsState()
+                        val emptyCreateScale by animateFloatAsState(
+                            targetValue = if (isEmptyCreatePressed) 0.94f else 1.0f,
+                            animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
+                            label = "emptyCreateBtnScale"
+                        )
+
                         Box(
                             modifier = Modifier
+                                .scale(emptyCreateScale)
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(accentColor)
-                                .clickable {
+                                .clickable(
+                                    interactionSource = emptyCreateInteractionSource,
+                                    indication = null
+                                ) {
+                                    MusyfyHaptics.performLight(view)
                                     newPlaylistName = ""
                                     showCreateDialog = true
                                 }

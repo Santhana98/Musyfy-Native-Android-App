@@ -25,6 +25,7 @@ object NavigationAnalyticsMapper {
             "full_player", "player" -> ScreenInfo(AnalyticsConstants.Screens.PLAYER, "Playback")
             "playlist" -> ScreenInfo(AnalyticsConstants.Screens.PLAYLIST, "Library")
             "appearance" -> ScreenInfo(AnalyticsConstants.Screens.APPEARANCE, "Preferences")
+            "feedback" -> ScreenInfo(AnalyticsConstants.Screens.FEEDBACK, "Support")
             else -> null
         }
     }

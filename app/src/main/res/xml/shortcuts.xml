@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="user_feedback"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_user_feedback_short"
+        android:shortcutLongLabel="@string/shortcut_user_feedback_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.musyfy.nativeapp"
+            android:targetClass="com.musyfy.nativeapp.MainActivity"
+            android:data="musyfy://feedback">
+            <extra android:name="shortcut_route" android:value="feedback" />
+        </intent>
+    </shortcut>
+</shortcuts>

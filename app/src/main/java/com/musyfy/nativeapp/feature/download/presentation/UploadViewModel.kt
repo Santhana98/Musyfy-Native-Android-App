@@ -1,19 +1,15 @@
 package com.musyfy.nativeapp.feature.download.presentation
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.musyfy.nativeapp.feature.download.data.YoutubeMetadataExtractor
+import com.musyfy.nativeapp.feature.download.data.YoutubeImportCoordinator
+import com.musyfy.nativeapp.feature.download.data.YoutubeImportState
 import com.musyfy.nativeapp.feature.download.data.YoutubeVideoInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 sealed interface PreviewUiState {
@@ -25,50 +21,44 @@ sealed interface PreviewUiState {
 
 @HiltViewModel
 class UploadViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    val importCoordinator: YoutubeImportCoordinator
 ) : ViewModel() {
 
-    private val _previewState = MutableStateFlow<PreviewUiState>(PreviewUiState.Empty)
-    val previewState: StateFlow<PreviewUiState> = _previewState.asStateFlow()
+    val importState: StateFlow<YoutubeImportState> = importCoordinator.importState
+    val currentUrl: StateFlow<String> = importCoordinator.currentUrl
 
-    private var activeJob: Job? = null
-    private var lastFetchedUrl: String = ""
+    val previewState: StateFlow<PreviewUiState> = importState.map { state ->
+        when (state) {
+            is YoutubeImportState.Idle -> PreviewUiState.Empty
+            is YoutubeImportState.ExtractingMetadata -> PreviewUiState.Loading
+            is YoutubeImportState.MetadataReady -> PreviewUiState.Success(state.info)
+            is YoutubeImportState.Importing -> PreviewUiState.Success(state.info)
+            is YoutubeImportState.Success -> PreviewUiState.Success(state.info)
+            is YoutubeImportState.Error -> PreviewUiState.Error(state.message)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = PreviewUiState.Empty
+    )
+
+    fun onUrlChanged(url: String, force: Boolean = false) {
+        importCoordinator.onUrlChanged(url, force = force)
+    }
 
     fun fetchPreview(url: String, force: Boolean = false) {
-        val trimmed = url.trim()
-        if (trimmed.isEmpty()) {
-            clearPreview()
-            return
-        }
+        importCoordinator.onUrlChanged(url, force = force)
+    }
 
-        val videoId = YoutubeMetadataExtractor.extractVideoId(trimmed)
-        if (videoId == null) {
-            _previewState.value = PreviewUiState.Error("Invalid YouTube URL format")
-            return
-        }
-
-        if (!force && trimmed == lastFetchedUrl) return
-        lastFetchedUrl = trimmed
-
-        activeJob?.cancel()
-        _previewState.value = PreviewUiState.Loading
-
-        activeJob = viewModelScope.launch {
-            val fullUrl = if (trimmed.startsWith("http")) trimmed else "https://www.youtube.com/watch?v=$videoId"
-            val info = withContext(Dispatchers.IO) {
-                YoutubeMetadataExtractor.fetchVideoInfo(context, fullUrl)
-            }
-            if (info != null) {
-                _previewState.value = PreviewUiState.Success(info)
-            } else {
-                _previewState.value = PreviewUiState.Error("Unable to fetch song details. Check your connection.")
-            }
-        }
+    fun startImport(onSuccess: (() -> Unit)? = null, onError: ((String) -> Unit)? = null) {
+        importCoordinator.startImport(onSuccess = onSuccess, onError = onError)
     }
 
     fun clearPreview() {
-        activeJob?.cancel()
-        lastFetchedUrl = ""
-        _previewState.value = PreviewUiState.Empty
+        importCoordinator.clear()
+    }
+
+    fun retry() {
+        importCoordinator.retry()
     }
 }

@@ -143,6 +143,44 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
+    fun addSongsToPlaylist(
+        playlistId: String,
+        songIds: List<String>,
+        source: String? = null,
+        onResult: ((addedCount: Int, totalCount: Int, playlistName: String) -> Unit)? = null,
+        onError: ((String) -> Unit)? = null
+    ) {
+        if (!inputValidator.validateId(playlistId) || songIds.isEmpty()) {
+            onError?.invoke("Invalid operation")
+            return
+        }
+        val validSongIds = songIds.filter { inputValidator.validateId(it) }
+        if (validSongIds.isEmpty()) {
+            onError?.invoke("No valid songs selected")
+            return
+        }
+
+        viewModelScope.launch {
+            operationProtector.withOperationLock("add_batch_$playlistId") {
+                try {
+                    val currentPlaylist = playlistRepository.getPlaylistById(playlistId).first()
+                    if (currentPlaylist == null) {
+                        onError?.invoke("Playlist not found")
+                        return@withOperationLock
+                    }
+                    val addedCount = playlistRepository.addSongsToPlaylist(playlistId, validSongIds)
+                    playlistAnalyticsTracker.trackPlaylistSongsAdded(
+                        songsCount = validSongIds.size,
+                        addSource = source
+                    )
+                    onResult?.invoke(addedCount, validSongIds.size, currentPlaylist.name)
+                } catch (e: Exception) {
+                    onError?.invoke(e.message ?: "Couldn't add the selected songs. Please try again.")
+                }
+            }
+        }
+    }
+
     fun removeSongFromPlaylist(playlistId: String, songId: String) {
         removeSongFromPlaylist(playlistId = playlistId, songId = songId, songTitle = "Unknown", artist = "Unknown")
     }

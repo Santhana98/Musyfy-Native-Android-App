@@ -52,6 +52,7 @@ import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
+import com.musyfy.nativeapp.core.ui.theme.MusyfyOrange
 
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -171,7 +172,7 @@ fun LoginScreen(
                         text = "EMAIL ADDRESS",
                         color = Color.White.copy(alpha = 0.4f),
                         fontSize = 10.sp, // reduced size and weight
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.2.sp,
                         modifier = Modifier.padding(start = 16.dp) // aligned with rounded border
                     )
@@ -206,12 +207,12 @@ fun LoginScreen(
                             text = "PASSWORD",
                             color = Color.White.copy(alpha = 0.4f),
                             fontSize = 10.sp, // reduced size and weight
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.2.sp
                         )
                         Text(
                             text = "Forgot Password?",
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                            color = MusyfyOrange.copy(alpha = 0.85f),
                             fontSize = 11.sp, // smaller, cleaner text link
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable { 
@@ -280,7 +281,7 @@ fun LoginScreen(
                     }
                     withStyle(
                         style = SpanStyle(
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MusyfyOrange,
                             fontWeight = FontWeight.Bold
                         )
                     ) {

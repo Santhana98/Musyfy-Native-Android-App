@@ -9,11 +9,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.musyfy.nativeapp.common.Constants
 import com.musyfy.nativeapp.domain.model.AuthState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Singleton
 class PreferencesManager @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
@@ -23,6 +22,30 @@ class PreferencesManager @Inject constructor(
     private val isLoggedInKey = booleanPreferencesKey("is_logged_in")
     private val userPasswordKey = stringPreferencesKey("user_password") // Temporary development password storage
     private val sessionStartTimestampKey = longPreferencesKey("session_start_timestamp")
+    private val feedbackInitiationsKey = stringPreferencesKey("feedback_initiation_timestamps")
+
+    suspend fun canInitiateFeedback(maxAllowed: Int = 3, rollingWindowMs: Long = 24 * 60 * 60 * 1000L): Boolean {
+        val now = System.currentTimeMillis()
+        val preferences = dataStore.data.first()
+        val raw = preferences[feedbackInitiationsKey] ?: ""
+        val recentTimestamps = raw.split(",")
+            .mapNotNull { it.trim().toLongOrNull() }
+            .filter { (now - it) < rollingWindowMs }
+        return recentTimestamps.size < maxAllowed
+    }
+
+    suspend fun recordFeedbackInitiated(rollingWindowMs: Long = 24 * 60 * 60 * 1000L) {
+        val now = System.currentTimeMillis()
+        dataStore.edit { preferences ->
+            val raw = preferences[feedbackInitiationsKey] ?: ""
+            val validTimestamps = raw.split(",")
+                .mapNotNull { it.trim().toLongOrNull() }
+                .filter { (now - it) < rollingWindowMs }
+                .toMutableList()
+            validTimestamps.add(now)
+            preferences[feedbackInitiationsKey] = validTimestamps.joinToString(",")
+        }
+    }
 
     val authState: Flow<AuthState> = dataStore.data.map { preferences ->
         AuthState(

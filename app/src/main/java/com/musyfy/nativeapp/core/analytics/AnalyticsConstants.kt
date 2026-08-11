@@ -15,10 +15,13 @@ object AnalyticsConstants {
         const val PLAYLIST = "Playlist"
         const val PLAYLISTS = "Playlists"
         const val APPEARANCE = "Appearance"
+        const val FEEDBACK = "Feedback"
     }
 
     object Events {
         const val SCREEN_VIEW = "screen_view"
+        const val FEEDBACK_SCREEN_VIEWED = "feedback_screen_viewed"
+        const val FEEDBACK_SEND_INITIATED = "feedback_send_initiated"
         const val APP_OPEN = "app_open"
         const val LOGIN = "login"
         const val LOGOUT = "logout"
@@ -55,6 +58,7 @@ object AnalyticsConstants {
         const val PLAYLIST_RENAMED = "playlist_renamed"
         const val PLAYLIST_PLAY_STARTED = "playlist_play_started"
         const val PLAYLIST_SONG_ADDED = "playlist_song_added"
+        const val PLAYLIST_SONGS_ADDED = "playlist_songs_added"
         const val PLAYLIST_SONG_REMOVED = "playlist_song_removed"
         const val PLAYLIST_REORDERED = "playlist_reordered"
         // Library Events
@@ -117,6 +121,7 @@ object AnalyticsConstants {
         const val OLD_NAME = "old_name"
         const val NEW_NAME = "new_name"
         const val SONG_COUNT = "song_count"
+        const val SONGS_COUNT = "songs_count"
         const val CURRENT_PLAYLIST_SONG_COUNT = "current_playlist_song_count"
         const val ADD_SOURCE = "add_source"
         const val DELETE_SOURCE = "delete_source"

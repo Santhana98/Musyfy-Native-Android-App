@@ -36,6 +36,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.musyfy.nativeapp.core.ui.theme.MusyfyOrange
+
 // 1. Glassmorphic Card container matching the legacy layout panel
 @Composable
 fun GlassmorphicCard(
@@ -87,7 +89,7 @@ fun AuthTextField(
         ),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        cursorBrush = SolidColor(MusyfyOrange),
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
@@ -134,7 +136,7 @@ fun AuthButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = MusyfyOrange
     val gradient = Brush.linearGradient(
         colors = listOf(primaryColor, primaryColor.copy(alpha = 0.85f))
     )

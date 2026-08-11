@@ -56,6 +56,17 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun addSongsToPlaylist(playlistId: String, songIds: List<String>): Int = withContext(Dispatchers.IO) {
+        val playlistEntity = playlistDao.getPlaylistById(playlistId).first() ?: return@withContext 0
+        val currentSongIds = playlistEntity.songIds
+        val newSongIds = songIds.filter { !currentSongIds.contains(it) }
+        if (newSongIds.isNotEmpty()) {
+            val updatedSongs = currentSongIds + newSongIds
+            playlistDao.updatePlaylist(playlistEntity.copy(songIds = updatedSongs))
+        }
+        newSongIds.size
+    }
+
     override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) = withContext(Dispatchers.IO) {
         val playlistEntity = playlistDao.getPlaylistById(playlistId).first() ?: return@withContext
         if (playlistEntity.songIds.contains(songId)) {

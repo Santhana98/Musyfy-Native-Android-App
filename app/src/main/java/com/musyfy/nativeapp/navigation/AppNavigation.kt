@@ -5,10 +5,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import com.musyfy.nativeapp.feature.auth.presentation.ui.LoginScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.RegisterScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.ForgotPasswordScreen
 import com.musyfy.nativeapp.feature.auth.presentation.ui.SplashScreen
+import com.musyfy.nativeapp.feature.feedback.presentation.ui.FeedbackScreen
 import com.musyfy.nativeapp.feature.home.presentation.ui.MainScreen
 
 sealed class Screen(val route: String) {
@@ -17,6 +19,7 @@ sealed class Screen(val route: String) {
     data object Register : Screen("register")
     data object ForgotPassword : Screen("forgot_password")
     data object Home : Screen("home")
+    data object Feedback : Screen("feedback")
 }
 
 @Composable
@@ -78,6 +81,25 @@ fun AppNavigation(
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
+                onNavigateToFeedback = {
+                    navController.navigate(Screen.Feedback.route)
+                }
+            )
+        }
+        composable(
+            route = Screen.Feedback.route,
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "musyfy://feedback" }
+            )
+        ) {
+            FeedbackScreen(
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Feedback.route) { inclusive = true }
+                        }
                     }
                 }
             )

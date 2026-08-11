@@ -35,6 +35,7 @@ import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    onNavigateToFeedback: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -210,6 +211,52 @@ fun SettingsScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
+                        }
+                    }
+                }
+
+                // User Feedback Card
+                val view = androidx.compose.ui.platform.LocalView.current
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF111112))
+                        .border(1.dp, Color(0xFF1A1A1C), RoundedCornerShape(14.dp))
+                        .clickable {
+                            com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics.performLight(view)
+                            onNavigateToFeedback()
+                        }
+                        .padding(18.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "💬", fontSize = 18.sp)
+                        }
+                        Column {
+                            Text(
+                                text = "User Feedback",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Tell us what you think — bugs, ideas, or feedback",
+                                color = Color(0xFF666666),
+                                fontSize = 13.sp
+                            )
                         }
                     }
                 }

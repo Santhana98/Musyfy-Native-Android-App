@@ -47,6 +47,7 @@ import com.musyfy.nativeapp.R
 import com.musyfy.nativeapp.core.ui.AuthButton
 import com.musyfy.nativeapp.core.ui.AuthTextField
 import com.musyfy.nativeapp.core.ui.GlassmorphicCard
+import com.musyfy.nativeapp.core.ui.theme.MusyfyOrange
 import androidx.compose.ui.draw.shadow
 
 import androidx.compose.runtime.collectAsState
@@ -134,7 +135,7 @@ fun ForgotPasswordScreen(
                 // Title
                 Text(
                     text = "Musyfy",
-                    color = Color(0xFFF9423A), // Musyfy red accent
+                    color = MusyfyOrange, // Musyfy brand orange accent
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Serif,

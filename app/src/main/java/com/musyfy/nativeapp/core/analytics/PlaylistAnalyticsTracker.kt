@@ -111,6 +111,19 @@ class PlaylistAnalyticsTracker @Inject constructor(
         )
     }
 
+    fun trackPlaylistSongsAdded(
+        songsCount: Int,
+        addSource: String? = null
+    ) {
+        val sourceAttr = addSource ?: playbackSourceProvider.getCurrentSource()
+        analyticsManager.logEvent(
+            AnalyticsEvent.playlistSongsAdded(
+                songsCount = songsCount,
+                addSource = sourceAttr
+            )
+        )
+    }
+
     fun trackPlaylistSongRemoved(
         playlistId: String,
         playlistName: String,

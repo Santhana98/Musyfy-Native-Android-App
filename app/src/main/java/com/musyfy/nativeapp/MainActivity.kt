@@ -25,11 +25,21 @@ import androidx.navigation.NavController
 import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsTracker
 import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsMapper
 
+import androidx.navigation.NavHostController
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var navigationAnalyticsTracker: NavigationAnalyticsTracker
+
+    private var activeNavController: NavHostController? = null
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        activeNavController?.handleDeepLink(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -60,6 +70,7 @@ class MainActivity : ComponentActivity() {
             com.musyfy.nativeapp.feature.appearance.presentation.ui.AppearanceProvider {
                 MusyfyTheme {
                     val navController = rememberNavController()
+                    activeNavController = navController
 
                     DisposableEffect(navController) {
                         val listener = NavController.OnDestinationChangedListener { _, destination, _ ->

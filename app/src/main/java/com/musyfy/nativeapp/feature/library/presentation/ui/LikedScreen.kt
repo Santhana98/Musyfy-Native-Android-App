@@ -58,6 +58,7 @@ fun LikedScreen(
     var selectedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
     var songOptionsTarget by remember { mutableStateOf<Song?>(null) }
     var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistForSongs by remember { mutableStateOf<List<String>?>(null) }
 
     // Filter by search query and strictly show only liked songs (isLiked == true)
     val filteredSongs = remember(songs, searchQuery, sortBy) {
@@ -120,7 +121,7 @@ fun LikedScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
                             if (selectedSongs.isNotEmpty()) {
-                                songOptionsTarget = songs.find { it.id == selectedSongs.first() }
+                                showAddToPlaylistForSongs = selectedSongs.toList()
                             }
                         }
                     )
@@ -304,7 +305,7 @@ fun LikedScreen(
                                 viewModel.playNext(song)
                             },
                             onAddToPlaylist = {
-                                songOptionsTarget = song
+                                showAddToPlaylistForSongs = listOf(song.id)
                             },
                             onDelete = {
                                 showDeleteConfirmationForSong = song
@@ -319,6 +320,96 @@ fun LikedScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 90.dp)
+        )
+    }
+
+    // Add to Playlist Dialog for LikedScreen
+    if (showAddToPlaylistForSongs != null) {
+        val targetSongIds = showAddToPlaylistForSongs!!
+        val isBatch = targetSongIds.size > 1 || isSelectionMode
+        AlertDialog(
+            onDismissRequest = { showAddToPlaylistForSongs = null },
+            title = {
+                Text(
+                    text = if (targetSongIds.size > 1) "Add ${targetSongIds.size} Songs to Playlist" else "Add Song to Playlist",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                if (playlists.isEmpty()) {
+                    Text("No playlists created yet. Please create a playlist first.", color = Color(0xFF888888))
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                    ) {
+                        items(playlists) { playlist ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val songIdsToProcess = targetSongIds
+                                        showAddToPlaylistForSongs = null
+                                        if (isBatch) {
+                                            playlistViewModel.addSongsToPlaylist(
+                                                playlistId = playlist.id,
+                                                songIds = songIdsToProcess,
+                                                source = "Liked",
+                                                onResult = { addedCount, totalCount, playlistName ->
+                                                    isSelectionMode = false
+                                                    selectedSongs = emptySet()
+                                                    coroutineScope.launch {
+                                                        val msg = when {
+                                                            addedCount == 0 -> "All selected songs are already in $playlistName."
+                                                            addedCount == 1 && totalCount == 1 -> "Song added to $playlistName"
+                                                            else -> "$addedCount song${if (addedCount > 1) "s" else ""} added to $playlistName"
+                                                        }
+                                                        snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short)
+                                                    }
+                                                },
+                                                onError = { err ->
+                                                    coroutineScope.launch {
+                                                        snackbarHostState.showSnackbar(err, duration = SnackbarDuration.Short)
+                                                    }
+                                                }
+                                            )
+                                        } else {
+                                            val singleSongId = songIdsToProcess.first()
+                                            val songObj = songs.find { it.id == singleSongId }
+                                            if (songObj != null) {
+                                                playlistViewModel.addSongToPlaylist(playlist.id, songObj, source = "Liked")
+                                            } else {
+                                                playlistViewModel.addSongToPlaylist(playlist.id, singleSongId)
+                                            }
+                                            isSelectionMode = false
+                                            selectedSongs = emptySet()
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Song added to ${playlist.name}", duration = SnackbarDuration.Short)
+                                            }
+                                        }
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = playlist.name,
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAddToPlaylistForSongs = null }) {
+                    Text("CLOSE", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF141416)
         )
     }
 

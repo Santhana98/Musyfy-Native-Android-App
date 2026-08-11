@@ -25,6 +25,28 @@ data class AnalyticsEvent(
             )
         }
 
+        fun feedbackScreenViewed(source: String? = null): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>()
+            if (!source.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.SOURCE] = source
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.FEEDBACK_SCREEN_VIEWED,
+                params = params
+            )
+        }
+
+        fun feedbackSendInitiated(source: String? = null): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>()
+            if (!source.isNullOrEmpty()) {
+                params[AnalyticsConstants.Params.SOURCE] = source
+            }
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.FEEDBACK_SEND_INITIATED,
+                params = params
+            )
+        }
+
         fun importStarted(sessionId: String, source: String): AnalyticsEvent {
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.IMPORT_STARTED,
@@ -393,6 +415,20 @@ data class AnalyticsEvent(
                     AnalyticsConstants.Params.CURRENT_PLAYLIST_SONG_COUNT to currentPlaylistSongCount,
                     AnalyticsConstants.Params.ADD_SOURCE to addSource
                 )
+            )
+        }
+
+        fun playlistSongsAdded(
+            songsCount: Int,
+            addSource: String
+        ): AnalyticsEvent {
+            val params = mutableMapOf<String, Any>(
+                AnalyticsConstants.Params.SONGS_COUNT to songsCount,
+                AnalyticsConstants.Params.ADD_SOURCE to addSource
+            )
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.PLAYLIST_SONGS_ADDED,
+                params = params
             )
         }
 

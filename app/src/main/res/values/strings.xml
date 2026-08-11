@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Musyfy</string>
+    <string name="shortcut_user_feedback_short">User Feedback</string>
+    <string name="shortcut_user_feedback_long">Send Feedback to Creator</string>
 </resources>
