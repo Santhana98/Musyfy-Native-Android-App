@@ -273,6 +273,16 @@ class PlayerViewModel @Inject constructor(
         deleteSong(song.id, source)
     }
 
+    fun deleteSongs(songIds: List<String>, source: String? = null) {
+        if (songIds.isEmpty()) return
+        val lockKey = "delete_batch_${songIds.sorted().joinToString(",")}"
+        viewModelScope.launch {
+            inFlightGuard.runIfKeyNotInFlight(lockKey) {
+                deleteSongUseCase.deleteSongs(songIds, source)
+            }
+        }
+    }
+
     fun toggleLikeSong(song: Song, source: String? = null) {
         viewModelScope.launch {
             inFlightGuard.runIfKeyNotInFlight("like_${song.id}") {

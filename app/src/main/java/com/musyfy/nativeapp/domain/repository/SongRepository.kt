@@ -8,4 +8,5 @@ interface SongRepository {
     fun getSongById(id: String): Flow<Song?>
     suspend fun addSong(song: Song)
     suspend fun deleteSong(songId: String)
+    suspend fun deleteSongs(songIds: List<String>)
 }

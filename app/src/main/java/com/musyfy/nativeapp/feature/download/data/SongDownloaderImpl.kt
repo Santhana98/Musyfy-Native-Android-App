@@ -119,7 +119,8 @@ class SongDownloaderImpl @Inject constructor(
             try {
                 if (isYoutube) {
                     val request = YoutubeDLRequest(song.url).apply {
-                        addOption("-f", "ba[ext=m4a]/bestaudio")
+                        addOption("-f", "bestaudio/best")
+                        addOption("--extractor-args", "youtube:player_client=android,web")
                         addOption("-o", tempFile.absolutePath)
                     }
                     

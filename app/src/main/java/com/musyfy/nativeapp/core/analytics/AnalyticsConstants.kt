@@ -65,7 +65,9 @@ object AnalyticsConstants {
         const val LIKED_SONG = "liked_song"
         const val REMOVED_LIKED_SONG = "removed_liked_song"
         const val SONG_DELETED = "song_deleted"
+        const val SONG_DELETED_BATCH = "song_deleted_batch"
         // Import Performance Events (Phase 14.1)
+        const val SHARE_IMPORT_STARTED = "share_import_started"
         const val ADD_TO_LIBRARY_CLICKED = "add_to_library_clicked"
         const val METADATA_EXTRACTION_STARTED = "metadata_extraction_started"
         const val METADATA_EXTRACTION_COMPLETED = "metadata_extraction_completed"

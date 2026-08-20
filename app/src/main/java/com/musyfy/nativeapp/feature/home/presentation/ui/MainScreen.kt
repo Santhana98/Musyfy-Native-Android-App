@@ -58,9 +58,26 @@ fun MainScreen(
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val analyticsViewModel: NavigationAnalyticsViewModel = hiltViewModel()
-    var activeTab by remember { mutableStateOf("home") }
+    val uploadViewModel: com.musyfy.nativeapp.feature.download.presentation.UploadViewModel = hiltViewModel()
+    val hasPendingShare = remember { uploadViewModel.shareTargetManager.pendingShareUrl.value != null }
+    var activeTab by remember { mutableStateOf(if (hasPendingShare) "upload" else "home") }
     var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
     var isPlayerExpanded by remember { mutableStateOf(false) }
+
+    val pendingSharedUrl by uploadViewModel.shareTargetManager.pendingShareUrl.collectAsState()
+
+    LaunchedEffect(pendingSharedUrl) {
+        val sharedUrl = pendingSharedUrl
+        if (!sharedUrl.isNullOrEmpty()) {
+            val urlToImport = uploadViewModel.shareTargetManager.consumePendingUrl()
+            if (!urlToImport.isNullOrEmpty()) {
+                selectedPlaylistId = null
+                isPlayerExpanded = false
+                activeTab = "upload"
+                uploadViewModel.handleSharedUrl(urlToImport)
+            }
+        }
+    }
 
     // Centralized scroll-aware state for Blinkit-style hide/show bottom navigation
     val scrollAwareState = rememberScrollAwareBottomBarState()

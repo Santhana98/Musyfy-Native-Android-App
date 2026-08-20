@@ -52,7 +52,11 @@ class DeleteSongUseCaseTest {
         override fun getSongs(): Flow<List<Song>> = flowOf(songs)
         override fun getSongById(id: String): Flow<Song?> = flowOf(songs.find { it.id == id })
         override suspend fun addSong(song: Song) { songs.add(song) }
-        override suspend fun deleteSong(id: String) { songs.removeAll { it.id == id } }
+        override suspend fun deleteSong(songId: String) { songs.removeAll { it.id == songId } }
+        override suspend fun deleteSongs(songIds: List<String>) {
+            val set = songIds.toSet()
+            songs.removeAll { it.id in set }
+        }
     }
 
     private val fakePlaylistRepository = object : PlaylistRepository {
@@ -62,9 +66,16 @@ class DeleteSongUseCaseTest {
         override suspend fun renamePlaylist(id: String, newName: String) {}
         override suspend fun deletePlaylist(id: String) {}
         override suspend fun addSongToPlaylist(playlistId: String, songId: String) {}
+        override suspend fun addSongsToPlaylist(playlistId: String, songIds: List<String>): Int = songIds.size
         override suspend fun removeSongFromPlaylist(playlistId: String, songId: String) {}
         override suspend fun removeSongFromAllPlaylists(songId: String) {
             val updated = playlists.map { p -> p.copy(songIds = p.songIds.filter { it != songId }) }
+            playlists.clear()
+            playlists.addAll(updated)
+        }
+        override suspend fun removeSongsFromAllPlaylists(songIds: List<String>) {
+            val set = songIds.toSet()
+            val updated = playlists.map { p -> p.copy(songIds = p.songIds.filter { it !in set }) }
             playlists.clear()
             playlists.addAll(updated)
         }
@@ -165,5 +176,34 @@ class DeleteSongUseCaseTest {
         assertTrue(loggedEvents.isEmpty())
         assertTrue(deletedDownloads.isEmpty())
         assertTrue(removedQueueSongIds.isEmpty())
+    }
+
+    @Test
+    fun testDeleteSongs_batchDeletesMultipleSongsAndLogsBatchAnalytics() = runTest {
+        val secondSong = Song(id = "s2", title = "Second Song", artist = "Second Artist", url = "https://youtube.com/watch?v=456")
+        songs.add(secondSong)
+
+        deleteSongUseCase.deleteSongs(listOf("s1", "s2"), deleteSource = "Liked")
+
+        // 1. Storage purged for both
+        assertTrue(deletedDownloads.contains("s1"))
+        assertTrue(deletedDownloads.contains("s2"))
+
+        // 2. Playback queue updated for both
+        assertTrue(removedQueueSongIds.contains("s1"))
+        assertTrue(removedQueueSongIds.contains("s2"))
+
+        // 3. Playlist references purged
+        assertTrue(playlists[0].songIds.isEmpty())
+
+        // 4. Song records deleted
+        assertTrue(songs.isEmpty())
+
+        // 5. One batch analytics event logged
+        assertEquals(1, loggedEvents.size)
+        val event = loggedEvents[0]
+        assertEquals("song_deleted_batch", event.name)
+        assertEquals(2, event.params["songs_count"])
+        assertEquals("Liked", event.params["delete_source"])
     }
 }

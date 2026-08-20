@@ -125,7 +125,7 @@ fun HomeScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
     var songOptionsTarget by remember { mutableStateOf<Song?>(null) }
-    var showDeleteConfirmationForSong by remember { mutableStateOf<Song?>(null) }
+    var showDeleteConfirmationForSongs by remember { mutableStateOf<List<Song>?>(null) }
 
     // Filter songs based on active tab
     val filteredSongs = when (activeTab) {
@@ -198,7 +198,10 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable {
                                 if (selectedSongs.isNotEmpty()) {
-                                    showDeleteConfirmationForSong = songs.find { it.id == selectedSongs.first() }
+                                    val selectedList = songs.filter { it.id in selectedSongs }
+                                    if (selectedList.isNotEmpty()) {
+                                        showDeleteConfirmationForSongs = selectedList
+                                    }
                                 }
                             }
                         )
@@ -450,7 +453,7 @@ fun HomeScreen(
                                 showAddToPlaylistForSongs = listOf(song.id)
                             },
                             onDelete = {
-                                showDeleteConfirmationForSong = song
+                                showDeleteConfirmationForSongs = listOf(song)
                             }
                         )
                     }
@@ -691,21 +694,28 @@ fun HomeScreen(
                 playlistViewModel.addSongToPlaylist(playlistId, targetSong.id)
             },
             onDeleteFromLibrary = {
-                showDeleteConfirmationForSong = targetSong
+                showDeleteConfirmationForSongs = listOf(targetSong)
                 songOptionsTarget = null
             }
         )
     }
 
     // Delete Song Confirmation Dialog
-    if (showDeleteConfirmationForSong != null) {
-        val targetSong = showDeleteConfirmationForSong!!
+    if (showDeleteConfirmationForSongs != null && showDeleteConfirmationForSongs!!.isNotEmpty()) {
+        val targetSongs = showDeleteConfirmationForSongs!!
+        val isBatch = targetSongs.size > 1
+        val titleText = if (isBatch) "Delete ${targetSongs.size} Songs from Library?" else "Delete Song from Library?"
+        val bodyText = if (isBatch) {
+            "Are you sure you want to remove ${targetSongs.size} selected songs from your library? This will delete their metadata and downloaded offline files."
+        } else {
+            "Are you sure you want to remove \"${targetSongs.first().title}\" from your library? This will delete its metadata and downloaded offline files."
+        }
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmationForSong = null },
-            title = { Text("Delete Song from Library?", color = Color.White, fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showDeleteConfirmationForSongs = null },
+            title = { Text(titleText, color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    text = "Are you sure you want to remove \"${targetSong.title}\" from your library? This will delete its metadata and downloaded offline files.",
+                    text = bodyText,
                     color = Color(0xFF888888),
                     fontSize = 14.sp
                 )
@@ -713,23 +723,31 @@ fun HomeScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val deletedSong = targetSong
-                        viewModel.deleteSong(deletedSong, source = "Home")
-                        showDeleteConfirmationForSong = null
-                        if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
-                            selectedSongs = selectedSongs - deletedSong.id
-                            if (selectedSongs.isEmpty()) {
-                                isSelectionMode = false
+                        val deletedSongs = targetSongs
+                        showDeleteConfirmationForSongs = null
+                        if (isBatch) {
+                            viewModel.deleteSongs(deletedSongs.map { it.id }, source = "Home")
+                            selectedSongs = emptySet()
+                            isSelectionMode = false
+                        } else {
+                            val deletedSong = deletedSongs.first()
+                            viewModel.deleteSong(deletedSong, source = "Home")
+                            if (isSelectionMode && selectedSongs.contains(deletedSong.id)) {
+                                selectedSongs = selectedSongs - deletedSong.id
+                                if (selectedSongs.isEmpty()) {
+                                    isSelectionMode = false
+                                }
                             }
                         }
                         coroutineScope.launch {
+                            val snackbarMessage = if (isBatch) "${deletedSongs.size} songs deleted" else "Song deleted"
                             val result = snackbarHostState.showSnackbar(
-                                message = "Song deleted",
+                                message = snackbarMessage,
                                 actionLabel = "UNDO",
                                 duration = SnackbarDuration.Short
                             )
                             if (result == SnackbarResult.ActionPerformed) {
-                                viewModel.restoreSong(deletedSong)
+                                deletedSongs.forEach { viewModel.restoreSong(it) }
                             }
                         }
                     }
@@ -738,7 +756,7 @@ fun HomeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmationForSong = null }) {
+                TextButton(onClick = { showDeleteConfirmationForSongs = null }) {
                     Text("CANCEL", color = Color.White)
                 }
             },

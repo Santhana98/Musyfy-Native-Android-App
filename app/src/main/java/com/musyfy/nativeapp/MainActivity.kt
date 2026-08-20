@@ -26,6 +26,7 @@ import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsTracker
 import com.musyfy.nativeapp.core.analytics.NavigationAnalyticsMapper
 
 import androidx.navigation.NavHostController
+import com.musyfy.nativeapp.core.share.ShareTargetManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -33,11 +34,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var navigationAnalyticsTracker: NavigationAnalyticsTracker
 
+    @Inject
+    lateinit var shareTargetManager: ShareTargetManager
+
     private var activeNavController: NavHostController? = null
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == android.content.Intent.ACTION_SEND) {
+            shareTargetManager.processIntent(intent)
+        }
         activeNavController?.handleDeepLink(intent)
     }
 
@@ -47,6 +54,10 @@ class MainActivity : ComponentActivity() {
             splashScreenView.remove()
         }
         super.onCreate(savedInstanceState)
+        
+        if (intent?.action == android.content.Intent.ACTION_SEND) {
+            shareTargetManager.processIntent(intent)
+        }
         
         // Request notifications permission at runtime on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

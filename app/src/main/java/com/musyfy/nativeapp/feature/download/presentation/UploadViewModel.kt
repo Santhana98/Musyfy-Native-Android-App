@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+import com.musyfy.nativeapp.core.share.ShareTargetManager
+
 sealed interface PreviewUiState {
     object Empty : PreviewUiState
     object Loading : PreviewUiState
@@ -21,7 +23,8 @@ sealed interface PreviewUiState {
 
 @HiltViewModel
 class UploadViewModel @Inject constructor(
-    val importCoordinator: YoutubeImportCoordinator
+    val importCoordinator: YoutubeImportCoordinator,
+    val shareTargetManager: ShareTargetManager
 ) : ViewModel() {
 
     val importState: StateFlow<YoutubeImportState> = importCoordinator.importState
@@ -34,7 +37,15 @@ class UploadViewModel @Inject constructor(
             is YoutubeImportState.MetadataReady -> PreviewUiState.Success(state.info)
             is YoutubeImportState.Importing -> PreviewUiState.Success(state.info)
             is YoutubeImportState.Success -> PreviewUiState.Success(state.info)
-            is YoutubeImportState.Error -> PreviewUiState.Error(state.message)
+            is YoutubeImportState.Error -> {
+                if (state.isMetadataError) {
+                    PreviewUiState.Error(state.message)
+                } else if (state.info != null) {
+                    PreviewUiState.Success(state.info)
+                } else {
+                    PreviewUiState.Empty
+                }
+            }
         }
     }.stateIn(
         scope = viewModelScope,
@@ -44,6 +55,10 @@ class UploadViewModel @Inject constructor(
 
     fun onUrlChanged(url: String, force: Boolean = false) {
         importCoordinator.onUrlChanged(url, force = force)
+    }
+
+    fun handleSharedUrl(url: String) {
+        importCoordinator.handleSharedUrl(url)
     }
 
     fun fetchPreview(url: String, force: Boolean = false) {

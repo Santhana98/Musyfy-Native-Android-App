@@ -165,6 +165,7 @@ fun UploadScreen(
         is YoutubeImportState.MetadataReady -> s.info
         is YoutubeImportState.Importing -> s.info
         is YoutubeImportState.Success -> s.info
+        is YoutubeImportState.Error -> s.info
         else -> null
     }
 
@@ -534,7 +535,7 @@ fun UploadScreen(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                val errorMsg = previewError ?: "Invalid URL pattern matched"
+                val errorMsg = previewError ?: (previewState as? PreviewUiState.Error)?.message ?: "Unable to fetch song details. Check your connection."
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -79,4 +79,17 @@ class LibraryAnalyticsTracker @Inject constructor(
             )
         )
     }
+
+    fun trackSongsDeletedBatch(
+        songsCount: Int,
+        deleteSource: String? = null
+    ) {
+        val sourceAttr = deleteSource ?: playbackSourceProvider.getCurrentSource()
+        analyticsManager.logEvent(
+            AnalyticsEvent.songDeletedBatch(
+                songsCount = songsCount,
+                deleteSource = sourceAttr
+            )
+        )
+    }
 }

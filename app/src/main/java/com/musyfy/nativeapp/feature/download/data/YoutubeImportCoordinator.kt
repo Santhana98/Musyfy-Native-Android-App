@@ -24,7 +24,12 @@ sealed interface YoutubeImportState {
     data class MetadataReady(val url: String, val info: YoutubeVideoInfo) : YoutubeImportState
     data class Importing(val url: String, val info: YoutubeVideoInfo) : YoutubeImportState
     data class Success(val url: String, val info: YoutubeVideoInfo, val song: Song) : YoutubeImportState
-    data class Error(val url: String, val message: String, val isMetadataError: Boolean) : YoutubeImportState
+    data class Error(
+        val url: String,
+        val message: String,
+        val isMetadataError: Boolean,
+        val info: YoutubeVideoInfo? = null
+    ) : YoutubeImportState
 }
 
 /**
@@ -102,7 +107,15 @@ class YoutubeImportCoordinator @Inject constructor(
         }
     }
 
-    fun startImport(onSuccess: (() -> Unit)? = null, onError: ((String) -> Unit)? = null) {
+    fun handleSharedUrl(url: String) {
+        onUrlChanged(url)
+    }
+
+    fun startImport(
+        onSuccess: (() -> Unit)? = null,
+        onError: ((String) -> Unit)? = null,
+        source: String = "youtube"
+    ) {
         val currentState = _importState.value
         val (url, info) = when (currentState) {
             is YoutubeImportState.MetadataReady -> Pair(currentState.url, currentState.info)
@@ -119,21 +132,21 @@ class YoutubeImportCoordinator @Inject constructor(
 
         val validation = inputValidator.validateYoutubeUrl(url)
         val sanitizedUrl = if (validation is ValidationResult.Success) validation.sanitizedInput else url
-        
+        val canonicalUrl = if (sanitizedUrl.startsWith("http")) sanitizedUrl else "https://www.youtube.com/watch?v=${info.id}"
+
         // Milestone 1: Track Add to Library Clicked
-        val sessionId = importAnalyticsTracker.trackAddToLibraryClicked(sanitizedUrl)
+        val sessionId = importAnalyticsTracker.trackAddToLibraryClicked(canonicalUrl, source = source)
 
         _importState.value = YoutubeImportState.Importing(url, info)
 
         importJob?.cancel()
         importJob = scope.launch(Dispatchers.IO) {
             // Milestone 2: Metadata Extraction Started
-            importAnalyticsTracker.trackMetadataExtractionStarted(sanitizedUrl)
+            importAnalyticsTracker.trackMetadataExtractionStarted(canonicalUrl)
 
             val existingSongs = songRepository.getSongs().first()
-            val exists = existingSongs.any { it.id == info.id }
-            if (exists) {
-                val existingSong = existingSongs.first { it.id == info.id }
+            val existingSong = existingSongs.find { it.id == info.id }
+            if (existingSong != null && existingSong.audioPath != null && java.io.File(existingSong.audioPath).exists()) {
                 withContext(Dispatchers.Main) {
                     _importState.value = YoutubeImportState.Success(url, info, existingSong)
                     onSuccess?.invoke()
@@ -146,7 +159,7 @@ class YoutubeImportCoordinator @Inject constructor(
 
             // Milestone 3: Metadata Extraction Completed
             importAnalyticsTracker.trackMetadataExtractionCompleted(
-                keyOrUrl = sanitizedUrl,
+                keyOrUrl = canonicalUrl,
                 songId = info.id,
                 songTitle = sanitizedTitle,
                 artist = sanitizedArtist
@@ -156,68 +169,82 @@ class YoutubeImportCoordinator @Inject constructor(
                 id = info.id,
                 title = sanitizedTitle,
                 artist = sanitizedArtist,
-                url = sanitizedUrl,
+                url = canonicalUrl,
                 imageUrl = info.thumbnail,
                 durationMs = (info.duration ?: 0) * 1000L
             )
 
             songRepository.addSong(newSong)
-            startBackgroundDownload(newSong)
 
-            withContext(Dispatchers.Main) {
-                _importState.value = YoutubeImportState.Success(url, info, newSong)
-                onSuccess?.invoke()
-            }
-        }
-    }
+            // Milestone 4: Download Started
+            importAnalyticsTracker.trackDownloadStarted(newSong.id)
 
-    private fun startBackgroundDownload(song: Song) {
-        // Milestone 4: Download Started
-        importAnalyticsTracker.trackDownloadStarted(song.id)
-        scope.launch {
-            val job = launch {
-                songDownloader.downloadSong(song).collect { status ->
+            try {
+                songDownloader.downloadSong(newSong).collect { status ->
                     when (status) {
                         is DownloadStatus.Downloading -> {
                             // Milestone 5: First Audio Cached
-                            importAnalyticsTracker.trackFirstAudioCached(song.id)
+                            importAnalyticsTracker.trackFirstAudioCached(newSong.id)
                         }
                         is DownloadStatus.Downloaded -> {
                             // Milestone 7: Download Completed
                             val fileSize = java.io.File(status.localPath).length()
-                            importAnalyticsTracker.trackDownloadCompleted(song.id, fileSize)
-                            
-                            // Milestone 8: Import Completed
-                            val persistedSong = songRepository.getSongs().first().find { it.id == song.id }
+                            importAnalyticsTracker.trackDownloadCompleted(newSong.id, fileSize)
+
+                            val persistedSong = songRepository.getSongs().first().find { it.id == newSong.id }
                             if (persistedSong != null && persistedSong.audioPath != null) {
-                                importAnalyticsTracker.trackImportCompleted(song.id)
+                                importAnalyticsTracker.trackImportCompleted(newSong.id, source = source)
                             } else {
                                 importAnalyticsTracker.trackImportFailedWithStage(
-                                    keyOrSongId = song.id,
+                                    keyOrSongId = newSong.id,
                                     failureReason = AnalyticsConstants.FailureReasons.STORAGE_ERROR,
-                                    failureStage = AnalyticsConstants.FailureStages.STORAGE
+                                    failureStage = AnalyticsConstants.FailureStages.STORAGE,
+                                    source = source
                                 )
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                val finalSong = persistedSong ?: newSong.copy(audioPath = status.localPath)
+                                _importState.value = YoutubeImportState.Success(url, info, finalSong)
+                                onSuccess?.invoke()
                             }
                         }
                         is DownloadStatus.Error -> {
                             val normalizedDownloadReason = normalizeDownloadErrorForDownload(status.message)
-                            importAnalyticsTracker.trackDownloadFailed(song.id, normalizedDownloadReason)
+                            importAnalyticsTracker.trackDownloadFailed(newSong.id, normalizedDownloadReason)
 
                             val normalizedReason = normalizeDownloadError(status.message)
                             val failureStage = getFailureStageFromReason(normalizedReason)
                             importAnalyticsTracker.trackImportFailedWithStage(
-                                keyOrSongId = song.id,
+                                keyOrSongId = newSong.id,
                                 failureReason = normalizedReason,
-                                failureStage = failureStage
+                                failureStage = failureStage,
+                                source = source
                             )
+
+                            withContext(Dispatchers.Main) {
+                                _importState.value = YoutubeImportState.Error(
+                                    url = url,
+                                    message = status.message.ifEmpty { "Download failed. Please check your connection." },
+                                    isMetadataError = false,
+                                    info = info
+                                )
+                                onError?.invoke(status.message)
+                            }
                         }
                         else -> {}
                     }
                 }
-            }
-            (songDownloader as? SongDownloaderImpl)?.registerJob(song.id, job)
-            job.invokeOnCompletion {
-                (songDownloader as? SongDownloaderImpl)?.clearJob(song.id)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _importState.value = YoutubeImportState.Error(
+                        url = url,
+                        message = e.message ?: "Download failed",
+                        isMetadataError = false,
+                        info = info
+                    )
+                    onError?.invoke(e.message ?: "Download failed")
+                }
             }
         }
     }

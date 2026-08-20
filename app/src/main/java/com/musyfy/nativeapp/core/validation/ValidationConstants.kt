@@ -12,6 +12,7 @@ object ValidationConstants {
         "youtube.com",
         "www.youtube.com",
         "m.youtube.com",
+        "music.youtube.com",
         "youtu.be"
     )
 }

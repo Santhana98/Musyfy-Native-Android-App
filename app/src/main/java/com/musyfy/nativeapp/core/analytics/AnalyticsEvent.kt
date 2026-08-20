@@ -554,7 +554,29 @@ data class AnalyticsEvent(
             )
         }
 
+        fun songDeletedBatch(
+            songsCount: Int,
+            deleteSource: String
+        ): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SONG_DELETED_BATCH,
+                params = mapOf(
+                    AnalyticsConstants.Params.SONGS_COUNT to songsCount,
+                    AnalyticsConstants.Params.DELETE_SOURCE to deleteSource
+                )
+            )
+        }
+
         // Import Performance Events (Phase 14.1)
+        fun shareImportStarted(source: String = "youtube_share"): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.SHARE_IMPORT_STARTED,
+                params = mapOf(
+                    AnalyticsConstants.Params.SOURCE to source
+                )
+            )
+        }
+
         fun addToLibraryClicked(sessionId: String, source: String = "youtube"): AnalyticsEvent {
             return AnalyticsEvent(
                 name = AnalyticsConstants.Events.ADD_TO_LIBRARY_CLICKED,

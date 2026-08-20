@@ -56,6 +56,7 @@ class InputValidatorTest {
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             "https://youtu.be/dQw4w9WgXcQ",
             "https://m.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
             "https://www.youtube.com/shorts/dQw4w9WgXcQ",
             "dQw4w9WgXcQ"
         )

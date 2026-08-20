@@ -79,4 +79,14 @@ class SongRepositoryImpl @Inject constructor(
             updated
         }
     }
+
+    override suspend fun deleteSongs(songIds: List<String>) {
+        if (songIds.isEmpty()) return
+        val songIdSet = songIds.toSet()
+        _songs.update { current ->
+            val updated = current.filterNot { it.id in songIdSet }
+            saveCustomSongs(updated)
+            updated
+        }
+    }
 }

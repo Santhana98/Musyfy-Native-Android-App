@@ -60,4 +60,32 @@ class DeleteSongUseCase @Inject constructor(
             isCurrentlyPlaying = isCurrentlyPlaying
         )
     }
+
+    suspend fun deleteSongs(songIds: List<String>, deleteSource: String? = null) = withContext(Dispatchers.IO) {
+        val uniqueSongIds = songIds.filter { it.isNotBlank() }.distinct()
+        if (uniqueSongIds.isEmpty()) return@withContext
+
+        if (uniqueSongIds.size == 1) {
+            invoke(uniqueSongIds.first(), deleteSource)
+            return@withContext
+        }
+
+        // 1. Cancel active/queued downloads & purge local files for each selected song
+        uniqueSongIds.forEach { id ->
+            songDownloader.deleteDownloadedSong(id)
+            playerManager.removeFromQueue(id)
+        }
+
+        // 2. Purge song IDs from all playlist entities in Room DB
+        playlistRepository.removeSongsFromAllPlaylists(uniqueSongIds)
+
+        // 3. Delete song records from local DB/repository
+        songRepository.deleteSongs(uniqueSongIds)
+
+        // 4. Log ONE batch analytics event after successful deletion
+        libraryAnalyticsTracker.trackSongsDeletedBatch(
+            songsCount = uniqueSongIds.size,
+            deleteSource = deleteSource
+        )
+    }
 }

@@ -26,10 +26,11 @@ object YoutubeMetadataExtractor {
             return null
         }
         val patterns = listOf(
-            Pattern.compile("https?://(?:www\\.)?youtube\\.com/watch\\?v=([a-zA-Z0-9_-]{11})"),
+            Pattern.compile("https?://(?:(?:www|m|music)\\.)?youtube\\.com/watch\\?(?:[^\\s]*&)?v=([a-zA-Z0-9_-]{11})"),
             Pattern.compile("https?://youtu\\.be/([a-zA-Z0-9_-]{11})"),
-            Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/([a-zA-Z0-9_-]{11})"),
-            Pattern.compile("https?://(?:www\\.)?youtube\\.com/embed/([a-zA-Z0-9_-]{11})"),
+            Pattern.compile("https?://(?:(?:www|m|music)\\.)?youtube\\.com/shorts/([a-zA-Z0-9_-]{11})"),
+            Pattern.compile("https?://(?:(?:www|m|music)\\.)?youtube\\.com/embed/([a-zA-Z0-9_-]{11})"),
+            Pattern.compile("https?://(?:(?:www|m|music)\\.)?youtube\\.com/live/([a-zA-Z0-9_-]{11})"),
             Pattern.compile("^([a-zA-Z0-9_-]{11})$")
         )
         for (pattern in patterns) {
@@ -59,6 +60,7 @@ object YoutubeMetadataExtractor {
             val request = YoutubeDLRequest(canonicalUrl).apply {
                 addOption("--dump-single-json")
                 addOption("--no-download")
+                addOption("--extractor-args", "youtube:player_client=android,web")
             }
             
             Log.d(TAG, "fetchVideoInfo: Executing yt-dlp metadata extraction...")
