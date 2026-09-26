@@ -60,7 +60,7 @@ object YoutubeMetadataExtractor {
             val request = YoutubeDLRequest(canonicalUrl).apply {
                 addOption("--dump-single-json")
                 addOption("--no-download")
-                addOption("--extractor-args", "youtube:player_client=android,web")
+                addOption("--extractor-args", "youtube:player_client=android")
             }
             
             Log.d(TAG, "fetchVideoInfo: Executing yt-dlp metadata extraction...")
