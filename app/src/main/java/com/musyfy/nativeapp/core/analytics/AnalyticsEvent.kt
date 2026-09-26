@@ -679,5 +679,74 @@ data class AnalyticsEvent(
                 params = params
             )
         }
+
+        fun engineUpdateChecked(currentVersion: String, updateSource: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_CHECKED,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion,
+                    AnalyticsConstants.Params.UPDATE_SOURCE to updateSource
+                )
+            )
+        }
+
+        fun engineUpdateAvailable(currentVersion: String, targetVersion: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_AVAILABLE,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion,
+                    AnalyticsConstants.Params.TARGET_ENGINE_VERSION to targetVersion
+                )
+            )
+        }
+
+        fun engineUpdateStarted(currentVersion: String, updateSource: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_STARTED,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion,
+                    AnalyticsConstants.Params.UPDATE_SOURCE to updateSource
+                )
+            )
+        }
+
+        fun engineUpdateCompleted(newVersion: String, durationMs: Long): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_COMPLETED,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to newVersion,
+                    AnalyticsConstants.Params.DURATION_MS to durationMs
+                )
+            )
+        }
+
+        fun engineUpdateFailed(currentVersion: String, failureReason: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_FAILED,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion,
+                    AnalyticsConstants.Params.FAILURE_REASON to failureReason
+                )
+            )
+        }
+
+        fun engineUpdateValidationFailed(currentVersion: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_VALIDATION_FAILED,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion
+                )
+            )
+        }
+
+        fun engineUpdateRollback(currentVersion: String, rollbackReason: String): AnalyticsEvent {
+            return AnalyticsEvent(
+                name = AnalyticsConstants.Events.ENGINE_UPDATE_ROLLBACK,
+                params = mapOf(
+                    AnalyticsConstants.Params.CURRENT_ENGINE_VERSION to currentVersion,
+                    AnalyticsConstants.Params.ROLLBACK_REASON to rollbackReason
+                )
+            )
+        }
     }
 }

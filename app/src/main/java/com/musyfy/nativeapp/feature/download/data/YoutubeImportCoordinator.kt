@@ -7,8 +7,12 @@ import com.musyfy.nativeapp.core.validation.InputValidator
 import com.musyfy.nativeapp.core.validation.ValidationResult
 import com.musyfy.nativeapp.domain.model.Song
 import com.musyfy.nativeapp.domain.repository.SongRepository
+import com.musyfy.nativeapp.feature.download.domain.CompatibilityErrorClassifier
+import com.musyfy.nativeapp.feature.download.domain.CompatibilityFailureType
+import com.musyfy.nativeapp.feature.download.domain.DownloaderEngineManager
 import com.musyfy.nativeapp.feature.download.domain.SongDownloader
 import com.musyfy.nativeapp.feature.download.domain.model.DownloadStatus
+import com.musyfy.nativeapp.feature.download.domain.model.UpdateCheckResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,11 +28,24 @@ sealed interface YoutubeImportState {
     data class MetadataReady(val url: String, val info: YoutubeVideoInfo) : YoutubeImportState
     data class Importing(val url: String, val info: YoutubeVideoInfo) : YoutubeImportState
     data class Success(val url: String, val info: YoutubeVideoInfo, val song: Song) : YoutubeImportState
+    data class CompatibilityUpdateAvailable(
+        val url: String,
+        val currentVersion: String,
+        val latestVersion: String,
+        val info: YoutubeVideoInfo? = null
+    ) : YoutubeImportState
+    data class UpdatingEngine(
+        val url: String,
+        val currentVersion: String,
+        val targetVersion: String,
+        val info: YoutubeVideoInfo? = null
+    ) : YoutubeImportState
     data class Error(
         val url: String,
         val message: String,
         val isMetadataError: Boolean,
-        val info: YoutubeVideoInfo? = null
+        val info: YoutubeVideoInfo? = null,
+        val isCompatibilityError: Boolean = false
     ) : YoutubeImportState
 }
 
@@ -43,7 +60,8 @@ class YoutubeImportCoordinator @Inject constructor(
     private val songRepository: SongRepository,
     private val songDownloader: SongDownloader,
     private val importAnalyticsTracker: ImportAnalyticsTracker,
-    private val inputValidator: InputValidator
+    private val inputValidator: InputValidator,
+    private val downloaderEngineManager: DownloaderEngineManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -55,12 +73,17 @@ class YoutubeImportCoordinator @Inject constructor(
 
     private var metadataExtractionJob: Job? = null
     private var importJob: Job? = null
+    private var compatibilityRetryCount = 0
 
     fun onUrlChanged(url: String, force: Boolean = false) {
         val trimmed = url.trim()
         if (trimmed.isEmpty()) {
             clear()
             return
+        }
+
+        if (trimmed != _currentUrl.value) {
+            compatibilityRetryCount = 0
         }
 
         val videoId = YoutubeMetadataExtractor.extractVideoId(trimmed)
@@ -80,7 +103,9 @@ class YoutubeImportCoordinator @Inject constructor(
                 is YoutubeImportState.ExtractingMetadata,
                 is YoutubeImportState.MetadataReady,
                 is YoutubeImportState.Importing,
-                is YoutubeImportState.Success -> return // Preserve in-flight or completed state; avoid duplicate jobs/analytics
+                is YoutubeImportState.Success,
+                is YoutubeImportState.CompatibilityUpdateAvailable,
+                is YoutubeImportState.UpdatingEngine -> return // Preserve in-flight or completed state; avoid duplicate jobs/analytics
                 else -> {}
             }
         }
@@ -98,6 +123,28 @@ class YoutubeImportCoordinator @Inject constructor(
             if (info != null) {
                 _importState.value = YoutubeImportState.MetadataReady(trimmed, info)
             } else {
+                val lastEx = YoutubeMetadataExtractor.lastExtractionException
+                val failureType = lastEx?.let { CompatibilityErrorClassifier.classify(it) }
+                if (failureType == CompatibilityFailureType.COMPATIBILITY_FAILURE && compatibilityRetryCount < 1) {
+                    val updateCheck = downloaderEngineManager.checkForUpdates(force = true)
+                    if (updateCheck is UpdateCheckResult.Available) {
+                        _importState.value = YoutubeImportState.CompatibilityUpdateAvailable(
+                            url = trimmed,
+                            currentVersion = updateCheck.currentVersion,
+                            latestVersion = updateCheck.latestVersion
+                        )
+                        return@launch
+                    } else {
+                        _importState.value = YoutubeImportState.Error(
+                            url = trimmed,
+                            message = "YouTube compatibility error. Please check back later for a downloader update.",
+                            isMetadataError = true,
+                            isCompatibilityError = true
+                        )
+                        return@launch
+                    }
+                }
+
                 _importState.value = YoutubeImportState.Error(
                     url = trimmed,
                     message = "Unable to fetch song details. Check your connection.",
@@ -148,6 +195,7 @@ class YoutubeImportCoordinator @Inject constructor(
             val existingSong = existingSongs.find { it.id == info.id }
             if (existingSong != null && existingSong.audioPath != null && java.io.File(existingSong.audioPath).exists()) {
                 withContext(Dispatchers.Main) {
+                    compatibilityRetryCount = 0
                     _importState.value = YoutubeImportState.Success(url, info, existingSong)
                     onSuccess?.invoke()
                 }
@@ -204,12 +252,29 @@ class YoutubeImportCoordinator @Inject constructor(
                             }
 
                             withContext(Dispatchers.Main) {
+                                compatibilityRetryCount = 0
                                 val finalSong = persistedSong ?: newSong.copy(audioPath = status.localPath)
                                 _importState.value = YoutubeImportState.Success(url, info, finalSong)
                                 onSuccess?.invoke()
                             }
                         }
                         is DownloadStatus.Error -> {
+                            val failureType = CompatibilityErrorClassifier.classify(status.message)
+                            if (failureType == CompatibilityFailureType.COMPATIBILITY_FAILURE && compatibilityRetryCount < 1) {
+                                val updateCheck = downloaderEngineManager.checkForUpdates(force = true)
+                                if (updateCheck is UpdateCheckResult.Available) {
+                                    withContext(Dispatchers.Main) {
+                                        _importState.value = YoutubeImportState.CompatibilityUpdateAvailable(
+                                            url = url,
+                                            currentVersion = updateCheck.currentVersion,
+                                            latestVersion = updateCheck.latestVersion,
+                                            info = info
+                                        )
+                                    }
+                                    return@collect
+                                }
+                            }
+
                             val normalizedDownloadReason = normalizeDownloadErrorForDownload(status.message)
                             importAnalyticsTracker.trackDownloadFailed(newSong.id, normalizedDownloadReason)
 
@@ -236,6 +301,22 @@ class YoutubeImportCoordinator @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                val failureType = CompatibilityErrorClassifier.classify(e)
+                if (failureType == CompatibilityFailureType.COMPATIBILITY_FAILURE && compatibilityRetryCount < 1) {
+                    val updateCheck = downloaderEngineManager.checkForUpdates(force = true)
+                    if (updateCheck is UpdateCheckResult.Available) {
+                        withContext(Dispatchers.Main) {
+                            _importState.value = YoutubeImportState.CompatibilityUpdateAvailable(
+                                url = url,
+                                currentVersion = updateCheck.currentVersion,
+                                latestVersion = updateCheck.latestVersion,
+                                info = info
+                            )
+                        }
+                        return@launch
+                    }
+                }
+
                 withContext(Dispatchers.Main) {
                     _importState.value = YoutubeImportState.Error(
                         url = url,
@@ -246,6 +327,68 @@ class YoutubeImportCoordinator @Inject constructor(
                     onError?.invoke(e.message ?: "Download failed")
                 }
             }
+        }
+    }
+
+    fun updateEngineAndRetry(
+        onSuccess: (() -> Unit)? = null,
+        onError: ((String) -> Unit)? = null
+    ) {
+        val currentState = _importState.value
+        if (currentState !is YoutubeImportState.CompatibilityUpdateAvailable) return
+
+        if (compatibilityRetryCount >= 1) {
+            _importState.value = YoutubeImportState.Error(
+                url = currentState.url,
+                message = "Engine was updated but YouTube format is still incompatible.",
+                isMetadataError = (currentState.info == null),
+                info = currentState.info
+            )
+            return
+        }
+
+        val url = currentState.url
+        val info = currentState.info
+        _importState.value = YoutubeImportState.UpdatingEngine(
+            url = url,
+            currentVersion = currentState.currentVersion,
+            targetVersion = currentState.latestVersion,
+            info = info
+        )
+
+        scope.launch {
+            val updateResult = downloaderEngineManager.updateEngine(triggerSource = "compatibility_retry")
+            if (updateResult.isSuccess) {
+                compatibilityRetryCount++
+                if (info != null) {
+                    _importState.value = YoutubeImportState.MetadataReady(url, info)
+                    startImport(onSuccess = onSuccess, onError = onError)
+                } else {
+                    onUrlChanged(url, force = true)
+                }
+            } else {
+                val err = updateResult.exceptionOrNull()?.message ?: "Downloader update failed"
+                _importState.value = YoutubeImportState.Error(
+                    url = url,
+                    message = "$err. Working engine restored.",
+                    isMetadataError = (info == null),
+                    info = info
+                )
+                onError?.invoke(err)
+            }
+        }
+    }
+
+    fun dismissCompatibilityNudge() {
+        val currentState = _importState.value
+        if (currentState is YoutubeImportState.CompatibilityUpdateAvailable) {
+            _importState.value = YoutubeImportState.Error(
+                url = currentState.url,
+                message = "Downloader update available in Settings.",
+                isMetadataError = (currentState.info == null),
+                info = currentState.info,
+                isCompatibilityError = true
+            )
         }
     }
 
@@ -261,6 +404,7 @@ class YoutubeImportCoordinator @Inject constructor(
         metadataExtractionJob = null
         importJob?.cancel()
         importJob = null
+        compatibilityRetryCount = 0
         _currentUrl.value = ""
         _importState.value = YoutubeImportState.Idle
     }

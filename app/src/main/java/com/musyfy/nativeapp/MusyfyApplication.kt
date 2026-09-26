@@ -21,6 +21,9 @@ class MusyfyApplication : Application() {
     @Inject
     lateinit var appLifecycleTracker: AppLifecycleTracker
 
+    @Inject
+    lateinit var downloaderEngineManager: com.musyfy.nativeapp.feature.download.domain.DownloaderEngineManager
+
     override fun onCreate() {
         super.onCreate()
         
@@ -46,11 +49,11 @@ class MusyfyApplication : Application() {
         analyticsManager.setUserProperty(AnalyticsConstants.UserProperties.ANDROID_VERSION, androidVersion)
         analyticsManager.setUserProperty(AnalyticsConstants.UserProperties.APP_VERSION, appVersion)
         
-        // Asynchronously initialize and update the yt-dlp binary rules
+        // Asynchronously initialize yt-dlp and recover any interrupted update transactions
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 YoutubeDL.getInstance().init(this@MusyfyApplication)
-                YoutubeDL.getInstance().updateYoutubeDL(this@MusyfyApplication, YoutubeDL.UpdateChannel._STABLE)
+                downloaderEngineManager.recoverOnStartup()
             } catch (e: Exception) {
                 // Ignore initialization failures in offline/no-network states
             }

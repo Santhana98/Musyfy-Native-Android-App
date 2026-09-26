@@ -18,6 +18,11 @@ sealed interface PreviewUiState {
     object Empty : PreviewUiState
     object Loading : PreviewUiState
     data class Success(val info: YoutubeVideoInfo) : PreviewUiState
+    data class CompatibilityUpdate(
+        val url: String,
+        val currentVersion: String,
+        val latestVersion: String
+    ) : PreviewUiState
     data class Error(val message: String) : PreviewUiState
 }
 
@@ -37,6 +42,16 @@ class UploadViewModel @Inject constructor(
             is YoutubeImportState.MetadataReady -> PreviewUiState.Success(state.info)
             is YoutubeImportState.Importing -> PreviewUiState.Success(state.info)
             is YoutubeImportState.Success -> PreviewUiState.Success(state.info)
+            is YoutubeImportState.CompatibilityUpdateAvailable -> {
+                PreviewUiState.CompatibilityUpdate(
+                    url = state.url,
+                    currentVersion = state.currentVersion,
+                    latestVersion = state.latestVersion
+                )
+            }
+            is YoutubeImportState.UpdatingEngine -> {
+                if (state.info != null) PreviewUiState.Success(state.info) else PreviewUiState.Loading
+            }
             is YoutubeImportState.Error -> {
                 if (state.isMetadataError) {
                     PreviewUiState.Error(state.message)
@@ -67,6 +82,14 @@ class UploadViewModel @Inject constructor(
 
     fun startImport(onSuccess: (() -> Unit)? = null, onError: ((String) -> Unit)? = null) {
         importCoordinator.startImport(onSuccess = onSuccess, onError = onError)
+    }
+
+    fun updateEngineAndRetry(onSuccess: (() -> Unit)? = null, onError: ((String) -> Unit)? = null) {
+        importCoordinator.updateEngineAndRetry(onSuccess = onSuccess, onError = onError)
+    }
+
+    fun dismissCompatibilityNudge() {
+        importCoordinator.dismissCompatibilityNudge()
     }
 
     fun clearPreview() {

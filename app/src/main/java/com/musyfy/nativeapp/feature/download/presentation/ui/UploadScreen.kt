@@ -166,6 +166,8 @@ fun UploadScreen(
         is YoutubeImportState.Importing -> s.info
         is YoutubeImportState.Success -> s.info
         is YoutubeImportState.Error -> s.info
+        is YoutubeImportState.CompatibilityUpdateAvailable -> s.info
+        is YoutubeImportState.UpdatingEngine -> s.info
         else -> null
     }
 
@@ -179,6 +181,8 @@ fun UploadScreen(
         is YoutubeImportState.Importing -> ImportState.Importing
         is YoutubeImportState.Success -> ImportState.Success
         is YoutubeImportState.Error -> ImportState.Error
+        is YoutubeImportState.CompatibilityUpdateAvailable -> ImportState.Idle
+        is YoutubeImportState.UpdatingEngine -> ImportState.Importing
     }
 
     var error by remember(coordinatorState) {
@@ -582,6 +586,144 @@ fun UploadScreen(
                                 .padding(horizontal = 14.dp, vertical = 6.dp)
                         )
                     }
+                }
+            }
+
+            // ================= SECTION 4A: Compatibility Update Nudge Card =================
+            AnimatedVisibility(
+                visible = coordinatorState is YoutubeImportState.CompatibilityUpdateAvailable,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                val compState = coordinatorState as? YoutubeImportState.CompatibilityUpdateAvailable
+                if (compState != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1E1610), RoundedCornerShape(16.dp))
+                            .border(1.dp, Color(0xFFFF8C42).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(text = "⚡", fontSize = 16.sp)
+                            Text(
+                                text = "YouTube Downloader Update Available",
+                                color = Color(0xFFFFB74D),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "YouTube streaming format updated. Upgrade downloader to v${compState.latestVersion} to import this track.",
+                            color = Color(0xDDFFFFFF),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color(0xFFFF8C42), MaterialTheme.colorScheme.primary)
+                                        )
+                                    )
+                                    .clickable {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                        uploadViewModel.updateEngineAndRetry(
+                                            onSuccess = {
+                                                coroutineScope.launch {
+                                                    com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics.performConfirmation(view)
+                                                    delay(1000)
+                                                    isFlying = true
+                                                    delay(600)
+                                                    uploadViewModel.clearPreview()
+                                                    isFlying = false
+                                                    onNavigateToHome()
+                                                }
+                                            },
+                                            onError = { errMsg ->
+                                                error = errMsg
+                                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                            }
+                                        )
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Update Now & Retry",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x22FFFFFF))
+                                    .clickable {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        uploadViewModel.dismissCompatibilityNudge()
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Later",
+                                    color = Color(0xCCFFFFFF),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Updating Engine In-Progress Card
+            AnimatedVisibility(
+                visible = coordinatorState is YoutubeImportState.UpdatingEngine,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                val updatingState = coordinatorState as? YoutubeImportState.UpdatingEngine
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0x15FFFFFF), RoundedCornerShape(16.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 2.5.dp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Updating YouTube Downloader...",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Downloading & safely verifying engine v${updatingState?.targetVersion ?: ""}...",
+                        color = Color(0xAAFFFFFF),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
 

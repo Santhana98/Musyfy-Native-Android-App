@@ -73,6 +73,14 @@ object AnalyticsConstants {
         const val METADATA_EXTRACTION_COMPLETED = "metadata_extraction_completed"
         const val FIRST_AUDIO_CACHED = "first_audio_cached"
         const val PLAYBACK_READY = "playback_ready"
+        // Downloader Engine Update Events
+        const val ENGINE_UPDATE_CHECKED = "engine_update_checked"
+        const val ENGINE_UPDATE_AVAILABLE = "engine_update_available"
+        const val ENGINE_UPDATE_STARTED = "engine_update_started"
+        const val ENGINE_UPDATE_COMPLETED = "engine_update_completed"
+        const val ENGINE_UPDATE_FAILED = "engine_update_failed"
+        const val ENGINE_UPDATE_VALIDATION_FAILED = "engine_update_validation_failed"
+        const val ENGINE_UPDATE_ROLLBACK = "engine_update_rollback"
     }
 
     object Params {
@@ -142,6 +150,11 @@ object AnalyticsConstants {
         const val NETWORK_TYPE = "network_type"
         const val FAILURE_STAGE = "failure_stage"
         const val PLAYBACK_STARTED_FROM = "playback_started_from"
+        // Engine Update Parameters
+        const val CURRENT_ENGINE_VERSION = "current_engine_version"
+        const val TARGET_ENGINE_VERSION = "target_engine_version"
+        const val UPDATE_SOURCE = "update_source"
+        const val ROLLBACK_REASON = "rollback_reason"
     }
 
     object FailureStages {

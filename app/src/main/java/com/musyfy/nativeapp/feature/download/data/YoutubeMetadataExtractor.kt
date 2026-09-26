@@ -19,6 +19,10 @@ object YoutubeMetadataExtractor {
 
     private const val TAG = "YoutubeMetadataExtractor"
 
+    @Volatile
+    var lastExtractionException: Throwable? = null
+        private set
+
     fun extractVideoId(url: String): String? {
         val trimmed = url.trim()
         if (trimmed.isEmpty()) {
@@ -46,10 +50,12 @@ object YoutubeMetadataExtractor {
     }
 
     fun fetchVideoInfo(context: Context, url: String): YoutubeVideoInfo? {
+        lastExtractionException = null
         try {
             Log.d(TAG, "fetchVideoInfo: processing URL: $url")
             val videoId = extractVideoId(url)
             if (videoId == null) {
+                lastExtractionException = IllegalArgumentException("Failed to parse video ID from URL: $url")
                 Log.e(TAG, "fetchVideoInfo: failed to parse video ID from URL: $url")
                 return null
             }
@@ -76,6 +82,9 @@ object YoutubeMetadataExtractor {
                 Log.d(TAG, "fetchVideoInfo: Successfully decoded metadata object: $info")
                 return info
             } else {
+                lastExtractionException = Exception(
+                    "yt-dlp returned non-zero exit code: ${response.exitCode}, out: ${response.out}, err: ${response.err}"
+                )
                 Log.e(
                     TAG, 
                     "fetchVideoInfo: yt-dlp returned non-zero exit code or empty output. " +
@@ -83,6 +92,7 @@ object YoutubeMetadataExtractor {
                 )
             }
         } catch (e: Exception) {
+            lastExtractionException = e
             Log.e(TAG, "fetchVideoInfo: Exception encountered during extraction pipeline", e)
         }
         return null

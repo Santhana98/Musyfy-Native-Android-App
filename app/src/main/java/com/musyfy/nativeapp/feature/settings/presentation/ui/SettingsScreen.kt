@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,16 +33,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.musyfy.nativeapp.feature.auth.presentation.AuthViewModel
+import com.musyfy.nativeapp.feature.download.domain.model.EngineUpdateState
+import com.musyfy.nativeapp.feature.settings.presentation.SettingsViewModel
 
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
     onNavigateToFeedback: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
     val themeState by viewModel.theme.collectAsState()
+    val engineState by settingsViewModel.engineState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -257,6 +263,172 @@ fun SettingsScreen(
                                 color = Color(0xFF666666),
                                 fontSize = 13.sp
                             )
+                        }
+                    }
+                }
+
+                // YouTube Downloader Engine Card
+                val isUpdating = engineState is EngineUpdateState.Preparing ||
+                        engineState is EngineUpdateState.BackingUp ||
+                        engineState is EngineUpdateState.Updating ||
+                        engineState is EngineUpdateState.Validating ||
+                        engineState is EngineUpdateState.RollingBack
+                val isChecking = engineState is EngineUpdateState.Checking
+                val currentVer = settingsViewModel.getCurrentEngineVersion()
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF111112))
+                        .border(1.dp, Color(0xFF1A1A1C), RoundedCornerShape(14.dp))
+                        .padding(18.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        Color(0xFFFF0000).copy(alpha = 0.15f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "📥", fontSize = 18.sp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "YouTube Downloader Engine",
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "yt-dlp v$currentVer",
+                                    color = Color(0xFF888888),
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+
+                        // Status message if any
+                        when (val s = engineState) {
+                            is EngineUpdateState.UpdateAvailable -> {
+                                Text(
+                                    text = "Update Available: v${s.latestVersion}",
+                                    color = Color(0xFFFFB74D),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            is EngineUpdateState.UpToDate -> {
+                                Text(
+                                    text = "Engine is up to date",
+                                    color = Color(0xFF81C784),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            is EngineUpdateState.Success -> {
+                                Text(
+                                    text = "Updated successfully to v${s.newVersion}",
+                                    color = Color(0xFF81C784),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            is EngineUpdateState.Failed -> {
+                                Text(
+                                    text = "Update failed: ${s.failureReason}",
+                                    color = Color(0xFFFF6B6B),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            is EngineUpdateState.InsufficientStorage -> {
+                                Text(
+                                    text = "Insufficient storage to update engine",
+                                    color = Color(0xFFFF6B6B),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            else -> {}
+                        }
+
+                        // Action button
+                        if (isUpdating || isChecking) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0x11FFFFFF), RoundedCornerShape(10.dp))
+                                    .padding(vertical = 10.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isChecking) "Checking for updates..." else "Updating downloader engine...",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        } else if (engineState is EngineUpdateState.UpdateAvailable) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color(0xFFFF8C42), MaterialTheme.colorScheme.primary)
+                                        )
+                                    )
+                                    .clickable {
+                                        com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics.performLight(view)
+                                        settingsViewModel.updateEngine()
+                                    }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Update Downloader Engine",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x1AFFFFFF))
+                                    .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        com.musyfy.nativeapp.core.ui.haptics.MusyfyHaptics.performLight(view)
+                                        settingsViewModel.checkForUpdates()
+                                    }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Check for Updates",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }

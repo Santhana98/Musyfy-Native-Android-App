@@ -17,4 +17,10 @@ abstract class DownloaderModule {
     abstract fun bindSongDownloader(
         downloaderImpl: SongDownloaderImpl
     ): SongDownloader
+
+    @Binds
+    @Singleton
+    abstract fun bindDownloaderEngineManager(
+        managerImpl: com.musyfy.nativeapp.feature.download.data.DownloaderEngineManagerImpl
+    ): com.musyfy.nativeapp.feature.download.domain.DownloaderEngineManager
 }
